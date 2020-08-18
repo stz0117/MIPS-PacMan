@@ -1,0 +1,1 @@
+java -jar "ZJUQS-II SWORD Emulator v1.2.1.jar"

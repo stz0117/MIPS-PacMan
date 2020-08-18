@@ -1,0 +1,120 @@
+# addr const init
+lui $k0, 0xC000     # disp
+lui $k1, 0xE000     # seg
+addi $gp, $zero, 0x0138   # data seg start TODO, start with maze
+addi $sp, $zero, 0x0400   # stack seg at 1024
+
+# game const init
+# pacman
+lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
+addi $s0, $zero, 0x100E   # position y:x
+
+# other const init
+addi $fp, $zero, 0x1  # const 1, use to compare with flag
+
+main:
+    lui $a0, 2
+    addi $a0, $a0, 2
+    addi $a1, $zero, 2
+    jal display_block
+dead:
+    j dead
+
+# function: $a0 times 640 (for emulator)
+a0_times_640:
+    sll $at, $a0, 7
+    sll $a0, $at, 2
+    add $a0, $a0, $at
+    jr $ra
+
+# function: $a0 times 420
+a0_times_420:
+    sll $at, $a0, 3     # at = 8x
+    sub $at, $at, $a0   # at = 7x
+    sll $a0, $at, 2     # a0 = 28x
+    add $a0, $a0, $at   # a0 = 35x
+    sll $at, $a0, 1     # at = 70x
+    add $at, $at, $a0   # at = 105x
+    sll $a0, $at, 2     # a0 = 420x
+    jr $ra
+
+# function: $a1 times 15
+a0_times_15:
+    sll $at, $a0, 2     # at = 4x
+    add $a0, $a0, $at   # a0 = 5x
+    sll $at, $a0, 2     # at = 20x
+    sub $a0, $at, $a0   # a0 = 15x
+    jr $ra
+
+# function: display block at a0 (low, high) with type a1
+display_block:
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)
+    sw $a0, 4($sp)
+    sw $a1, 8($sp)
+    
+    andi $t2, $a0, 0x00FF    # x
+    srl $a0, $a0, 16
+    andi $t3, $a0, 0x00FF    # y
+    
+    add $a0, $t3, $zero
+    jal a0_times_640    # TOGGLE
+    add $a0, $a0, $t2
+    jal a0_times_15
+    sll $a0, $a0, 2         #  pixel addr
+    addi $t2, $a0, 56       # 14 * 4 addr of the ending pixel
+    add $t2, $t2, $k0
+
+    slti $at, $a1, 0x16
+    beq $at, $fp, black_type
+    slti $at, $a1, 0x1c
+    beq $at, $fp, gray_type_special
+    slti $at, $a1, 0x30
+    beq $at, $fp, gray_type_common
+    sw $k1, 0($k1)  # error type
+    jr $ra
+
+    black_type:
+        add $a0, $a1, $zero
+        jal a0_times_15
+        sll $a0, $a0, 2     #  * 4 to get addr
+        add $a0, $a0, $gp
+        addi $t3, $a0, 0x0000 # 0x0364   # skip maze, real pic addr
+
+        addi $t4, $zero, 15
+        addi $t5, $zero, 15
+        black_loop:
+            lw $t0, 0($t3)
+        black_loop_inner:
+            srl $t0, $t0, 2
+            andi $at, $t0, 0x3  # lowest 2 bits
+            beq $at, $zero, black_loop_0
+            lui $at, 0x033d
+            j black_loop_0_end
+            black_loop_0:
+            lui $at, 0x0101
+            black_loop_0_end:
+            sw $at, 0($t2)
+            addi $t2, $t2, -4
+            addi $t4, $t4, -1
+            bne $t4, $0, black_loop_inner
+            addi $t3, $t3, 4
+            addi $t2, $t2, 2620  # 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t4, $zero, 15
+            addi $t5, $t5, -1
+            bne $t5, $0, black_loop
+    gray_type_special:
+    lw $ra, 0($sp)
+    lw $a0, 4($sp)
+    lw $a1, 8($sp)
+    addi $sp, $sp, 12
+    jr $ra
+    gray_type_common:
+    lw $ra, 0($sp)
+    lw $a0, 4($sp)
+    lw $a1, 8($sp)
+    addi $sp, $sp, 12
+    jr $ra
+    
+
+
