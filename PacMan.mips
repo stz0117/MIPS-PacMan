@@ -13,35 +13,26 @@ addi $s0, $zero, 0x100E   # position y:x
 addi $fp, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
-main:
-    # lui $a0, 0x3
-    # addi $a0, $a0, 0x3
-    # jal reset_block
-    # lui $a0, 0x9
-    # addi $a0, $a0, 0x4
-    # jal reset_block
-    # lui $a0, 0x9
-    # addi $a0, $a0, 0x5
-    # jal reset_block
+# maze init
+add $t4, $zero, $zero
+add $t5, $zero, $zero
+addi $t6, $zero, 28
+addi $t7, $zero, 32
+addi $a0, $a0, 0
+maze_loop:
+    jal reset_block
+    addi $a0, $a0, 1
+    
+    addi $t4, $t4, 1
+    bne $t4, $t6, maze_loop
+    
+    sub $a0, $a0, $t4
+    add $a0, $a0, $t9
 
     add $t4, $zero, $zero
-    add $t5, $zero, $zero
-    addi $t6, $zero, 28
-    addi $t7, $zero, 32
-    addi $a0, $a0, 0
-    main_loop:
-        jal reset_block
-        addi $a0, $a0, 1
-        
-        addi $t4, $t4, 1
-        bne $t4, $t6, main_loop
-        
-        sub $a0, $a0, $t4
-        add $a0, $a0, $t9
+    addi $t5, $t5, 1
+    bne $t5, $t7, maze_loop
 
-        add $t4, $zero, $zero
-        addi $t5, $t5, 1
-        bne $t5, $t7, main_loop
 dead:
     j dead
 
@@ -111,17 +102,13 @@ a0_times_420:
     sll $at, $a0, 3     # at = 8x
     sub $at, $at, $a0   # at = 7x
     sll $a0, $at, 2     # a0 = 28x
-    add $a0, $a0, $at   # a0 = 35x
-    sll $at, $a0, 1     # at = 70x
-    add $at, $at, $a0   # at = 105x
-    sll $a0, $at, 2     # a0 = 420x
+    sll $at, $a0, 4     # at = 448x
+    sub $a0, $at, $a0   # a0 = 420x
     jr $ra
 
 # function: $a1 times 15
 a0_times_15:
-    sll $at, $a0, 2     # at = 4x
-    add $a0, $a0, $at   # a0 = 5x
-    sll $at, $a0, 2     # at = 20x
+    sll $at, $a0, 4     # at = 16x
     sub $a0, $at, $a0   # a0 = 15x
     jr $ra
 
@@ -137,11 +124,16 @@ display_block:
     andi $t3, $a0, 0x00FF    # y
     
     add $a0, $t3, $zero
-    jal a0_times_420    # TOGGLE
+    # TOGGLE
+    jal a0_times_420
+    # jal a0_times_640
     add $a0, $a0, $t2
     jal a0_times_15
+    # TOGGLE
     sll $a0, $a0, 2         #  pixel addr
     addi $t2, $a0, 56       # 14 * 4 addr of the ending pixel
+    # sll $a0, $a0, 1         #  pixel addr
+    # addi $t2, $a0, 28       # 14 * 2 addr of the ending pixel
     add $t2, $t2, $k0
 
     andi $at, $a1, 0xF  # 0xF door
@@ -184,12 +176,16 @@ display_block:
             beq $t1, $zero, pink_door_type_loop_0_end   # black
             lui $at, 0x0111
             pink_door_type_loop_0_end:
+            # TOGGLE
             sw $at, 0($t2)
+            # sh $at, 0($t2)
             addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pink_door_type_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pink_door_type_loop
@@ -215,12 +211,16 @@ display_block:
             black_type_loop_0:
             lui $at, 0x0101
             black_type_loop_0_end:
+            # TOGGLE
             sw $at, 0($t2)
+            # sh $at, 0($t2)
             addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, black_type_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, black_type_loop
@@ -246,12 +246,16 @@ display_block:
             gray_type_special_loop_0:
             lui $at, 0x0111
             gray_type_special_loop_0_end:
+            # TOGGLE
             sw $at, 0($t2)
+            # sh $at, 0($t2)
             addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_special_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_special_loop
@@ -278,12 +282,16 @@ display_block:
             gray_type_common_loop_0:
             lui $at, 0x0111
             gray_type_common_loop_0_end:
+            # TOGGLE
             sw $at, 0($t2)
+            # sh $at, 0($t2)
             addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_common_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 2620   for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_common_loop
