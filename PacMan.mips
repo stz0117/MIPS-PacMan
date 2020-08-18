@@ -1,7 +1,7 @@
 # addr const init
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
-addi $gp, $zero, 0x0138   # data seg start TODO, start with maze
+addi $gp, $zero, 0x01D8   # data seg start TODO, start with maze
 addi $sp, $zero, 0x0400   # stack seg at 1024
 
 # game const init
@@ -10,38 +10,54 @@ lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
 addi $s0, $zero, 0x100E   # position y:x
 
 # other const init
-addi $fp, $zero, 0x1  # const 1, use to compare with flag
+addi $fp, $zero, 0x1  # const 1, used in beq to compare with flag
 
 main:
     lui $a0, 2
-    addi $a0, $a0, 2
-    addi $a1, $zero, 2
-    jal display_block
+    addi $a0, $a0, 3
+    jal reset_block
 dead:
     j dead
 
-# function: display block at a0 (x:low, y:high) with original maze pic
+# function: display original maze at a0 (x:low, y:high)
 reset_block:
     addi $sp, $sp, -12
     sw $ra, 0($sp)
     sw $a0, 4($sp)
     sw $a1, 8($sp)
 
-    andi $t2, $a0, 0x00FF    # x
-    srl $a0, $a0, 16
-    andi $t3, $a0, 0x00FF    # y
+    add $at, $a0, $zero
+    andi $t2, $at, 0x00FF    # x
+    srl $at, $at, 16
+    andi $t3, $at, 0x00FF    # y
     
     sll $at, $t3, 3
     sub $t3, $at, $t3   # y *= 7
-    srl $at, $t2, 2     # x /= 4
+    srl $at, $t2, 2     # x /= 4    t2 is still x
     add $t3, $at, $t3   # index of word
     sll $t3, $t3 ,2     # addr
-                        # t2 is still x
+    add $t3, $t3, $gp   # add maze addr start
+    lw  $t1, 0($t3)
 
-    
-    add $t3, $t3, $gp
-    
-
+    andi $t2, $t2, 0x3  # x %= 4
+    slti $at, $t2, 1    # x = 0
+    beq $at, $fp, shift_3
+    slti $at, $t2, 2    # x = 1
+    beq $at, $fp, shift_2
+    slti $at, $t2, 3    # x = 2
+    beq $at, $fp, shift_1
+    j shift_end
+    shift_3:
+    srl $t1, $t1, 24
+    j shift_end
+    shift_2:
+    srl $t1, $t1, 16
+    j shift_end
+    shift_1:
+    srl $t1, $t1, 8
+    shift_end:
+    andi $a1, $t1, 0xFF
+    jal display_block
 
     lw $ra, 0($sp)
     lw $a0, 4($sp)
@@ -87,7 +103,7 @@ display_block:
     andi $t3, $a0, 0x00FF    # y
     
     add $a0, $t3, $zero
-    jal a0_times_640    # TOGGLE
+    jal a0_times_420    # TOGGLE
     add $a0, $a0, $t2
     jal a0_times_15
     sll $a0, $a0, 2         #  pixel addr
@@ -128,7 +144,7 @@ display_block:
             addi $t4, $t4, -1
             bne $t4, $0, black_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 2620  # 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, black_loop
