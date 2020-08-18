@@ -1,8 +1,8 @@
 # addr const init
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
-addi $gp, $zero, 0x02D8   # data seg start TODO, start with maze
-addi $sp, $zero, 0x0400   # stack seg at 1024
+addi $gp, $zero, 0x0360   # data seg start TODO, start with maze
+addi $sp, $zero, 0x1000   # stack seg at 1024
 
 # game const init
 # pacman
@@ -14,27 +14,34 @@ addi $fp, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
 main:
-    lui $a0, 0xF
-    addi $a0, $a0, 0xF
-    jal reset_block
-#     add $t4, $zero, $zero
-#     add $t5, $zero, $zero
-#     addi $t6, $zero, 28
-#     addi $t7, $zero, 32
-#     add $a0, $zero, $zero
-#     main_loop:
-#         jal reset_block
-#         addi $a0, $a0, 1
-        
-#         addi $t4, $t4, 1
-#         bne $t4, $t6, main_loop
-        
-#         sub $a0, $a0, $t4
-#         add $a0, $a0, $t9
+    # lui $a0, 0x3
+    # addi $a0, $a0, 0x3
+    # jal reset_block
+    # lui $a0, 0x9
+    # addi $a0, $a0, 0x4
+    # jal reset_block
+    # lui $a0, 0x9
+    # addi $a0, $a0, 0x5
+    # jal reset_block
 
-#         add $t4, $zero, $zero
-#         addi $t5, $t5, 1
-#         bne $t5, $t7, main_loop
+    add $t4, $zero, $zero
+    add $t5, $zero, $zero
+    addi $t6, $zero, 28
+    addi $t7, $zero, 32
+    addi $a0, $a0, 0
+    main_loop:
+        jal reset_block
+        addi $a0, $a0, 1
+        
+        addi $t4, $t4, 1
+        bne $t4, $t6, main_loop
+        
+        sub $a0, $a0, $t4
+        add $a0, $a0, $t9
+
+        add $t4, $zero, $zero
+        addi $t5, $t5, 1
+        bne $t5, $t7, main_loop
 dead:
     j dead
 
@@ -130,13 +137,16 @@ display_block:
     andi $t3, $a0, 0x00FF    # y
     
     add $a0, $t3, $zero
-    jal a0_times_640    # TOGGLE
+    jal a0_times_420    # TOGGLE
     add $a0, $a0, $t2
     jal a0_times_15
     sll $a0, $a0, 2         #  pixel addr
     addi $t2, $a0, 56       # 14 * 4 addr of the ending pixel
     add $t2, $t2, $k0
 
+    andi $at, $a1, 0xF  # 0xF door
+    addi $t1, $zero, 0xF
+    beq $at, $t1, pink_door_type
     slti $at, $a1, 0x16
     beq $at, $fp, black_type
     slti $at, $a1, 0x1c
@@ -145,6 +155,45 @@ display_block:
     beq $at, $fp, gray_type_common
     sw $k1, 0($k1)  # error type
     jr $ra
+
+    pink_door_type:
+        slti $at, $a1, 0x2F     # at = 1: black
+        addi $t1, $zero, 0
+        bne $at, $zero, pink_door_black
+        addi $a1, $a1, -0x20
+        addi $t1, $zero, 1    # 1:gray
+        pink_door_black:
+        add $a0, $a1, $zero
+        jal a0_times_15
+        sll $a0, $a0, 2     #  * 4 to get addr
+        add $a0, $a0, $gp
+        addi $t3, $a0, 0x0364   # skip maze, pic addr starts
+
+        addi $t4, $zero, 15
+        addi $t5, $zero, 15
+        pink_door_type_loop:
+            lw $t0, 0($t3)
+        pink_door_type_loop_inner:
+            srl $t0, $t0, 2
+            andi $at, $t0, 0x3  # lowest 2 bits
+            beq $at, $zero, pink_door_type_loop_0
+            lui $at, 0x0fbf
+            j pink_door_type_loop_0_end
+            pink_door_type_loop_0:
+            lui $at, 0x0101
+            beq $t1, $zero, pink_door_type_loop_0_end   # black
+            lui $at, 0x0111
+            pink_door_type_loop_0_end:
+            sw $at, 0($t2)
+            addi $t2, $t2, -4
+            addi $t4, $t4, -1
+            bne $t4, $0, pink_door_type_loop_inner
+            addi $t3, $t3, 4
+            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t4, $zero, 15
+            addi $t5, $t5, -1
+            bne $t5, $0, pink_door_type_loop
+    j display_block_end
 
     black_type:
         add $a0, $a1, $zero
@@ -171,7 +220,7 @@ display_block:
             addi $t4, $t4, -1
             bne $t4, $0, black_type_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 2620  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, black_type_loop
@@ -202,7 +251,7 @@ display_block:
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_special_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 2620  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_special_loop
@@ -234,7 +283,7 @@ display_block:
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_common_loop_inner
             addi $t3, $t3, 4
-            addi $t2, $t2, 2620  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
+            addi $t2, $t2, 1740  # 2620 for 640 mode, 1740 for 420 mode  # (420 + 15) * 4  # TOGGLE
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_common_loop
