@@ -20,6 +20,35 @@ main:
 dead:
     j dead
 
+# function: display block at a0 (x:low, y:high) with original maze pic
+reset_block:
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)
+    sw $a0, 4($sp)
+    sw $a1, 8($sp)
+
+    andi $t2, $a0, 0x00FF    # x
+    srl $a0, $a0, 16
+    andi $t3, $a0, 0x00FF    # y
+    
+    sll $at, $t3, 3
+    sub $t3, $at, $t3   # y *= 7
+    srl $at, $t2, 2     # x /= 4
+    add $t3, $at, $t3   # index of word
+    sll $t3, $t3 ,2     # addr
+                        # t2 is still x
+
+    
+    add $t3, $t3, $gp
+    
+
+
+    lw $ra, 0($sp)
+    lw $a0, 4($sp)
+    lw $a1, 8($sp)
+    addi $sp, $sp, 12
+    jr $ra
+
 # function: $a0 times 640 (for emulator)
 a0_times_640:
     sll $at, $a0, 7
@@ -79,7 +108,7 @@ display_block:
         jal a0_times_15
         sll $a0, $a0, 2     #  * 4 to get addr
         add $a0, $a0, $gp
-        addi $t3, $a0, 0x0000 # 0x0364   # skip maze, real pic addr
+        addi $t3, $a0, 0x0364   # skip maze, pic addr starts
 
         addi $t4, $zero, 15
         addi $t5, $zero, 15
@@ -116,5 +145,3 @@ display_block:
     addi $sp, $sp, 12
     jr $ra
     
-
-
