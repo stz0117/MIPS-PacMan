@@ -1,43 +1,366 @@
 # addr const init
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
+# TOGGLE
+#
+lui $fp, 0xB000     # btn
 # addi $gp, $zero, 0x0350   # data seg start TODO, start with maze
 la $gp, data
-addi $sp, $zero, 0x1000   # stack seg at 1024
+addi $sp, $zero, 0x2000   # stack seg at 1024
 
 # game const init
-# pacman
+# pacman pos dir
 lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
-addi $s0, $zero, 0x100E   # position y:x
+addi $s0, $s0, 0x170d   # position y:x
 
 # other const init
-addi $fp, $zero, 0x1  # const 1, used in beq to compare with flag
+addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
-# maze init
-add $t4, $zero, $zero
-add $t5, $zero, $zero
-addi $t6, $zero, 28
-addi $t7, $zero, 32
-addi $a0, $a0, 0
-maze_loop:
-    jal reset_block
-    addi $a0, $a0, 1
+main:
+    jal maze_init
+    lui $a0, 0x17
+    addi $a0, $a0, 0xd
+    addi $a1, $a1, 0x30
+    jal display_block
+
+    lui $t4, 0x000C
+    read_in_loop:
+        # TOGGLE
+        # lw $a0, 
+        lw $a0, 0($fp)
+
+        addi $t4, $t4, -1
+        bne $t4, $zero, read_in_loop
+        jal frame
+        lui $t4, 0x000C
+        j read_in_loop
+
+# function: displat next frame according to current state, input and maze
+# ruin a0
+frame:
+    addi $sp, $sp, -8
+    sw $ra, 0($sp)
+    sw $t4, 4($sp)
+
+    # spirit next
+
+
+    # pacman next
+    sw $a0, 0($k1)
+    # TOGGLE
+    #
+    lui $at, 0x3
+    addi $at, $at, 0x0E00
+    beq $s0, $at, frame_penetrate_left
+    lui $at, 0x1
+    addi $at, $\ at, 0x0E1B
+    beq $s0, $at, frame_penetrate_right
+    andi $a0, $a0, 0xF
+    addi $at, $zero, 0x0
+    beq $a0, $at, frame_pacman_not_change
+    addi $at, $zero, 0x5
+    beq $a0, $at, frame_kbd_up
+    addi $at, $zero, 0x8
+    beq $a0, $at, frame_kbd_left
+    addi $at, $zero, 0xA
+    beq $a0, $at, frame_kbd_right
+    addi $at, $zero, 0xD
+    beq $a0, $at, frame_kbd_down
+    sw $k1, 0($k1)
+
+    lw $ra, 0($sp)
+    lw $t4, 4($sp)
+    addi $sp, $sp, 8
+    jr $ra
+
+    frame_kbd_up:
+        # s0: 16 - pos  9:8 - y  1:0 - x
+        # a0: 17:16 - y  1:0 - x
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        sub $a0, $a0, $t9   # y -= 1
+        jal is_blocked
+        bne $v0, $zero, frame_pacman_not_change
+        addi $a1, $zero, 0x31
+        jal display_block
+        add $a0, $a0, $t9
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x0
+        add $s0, $s0, $at
+        addi $s0, $s0, -0x100
+        j frame_end
+
+    frame_kbd_right:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        addi $a0, $a0, 1   # x += 1
+        jal is_blocked
+        bne $v0, $zero, frame_pacman_not_change
+        addi $a1, $zero, 0x35
+        jal display_block
+        addi $a0, $a0, -1
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x1
+        add $s0, $s0, $at
+        addi $s0, $s0, 1
+        j frame_end
+
+    frame_kbd_down:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        add $a0, $a0, $t9   # y += 1
+        jal is_blocked
+        bne $v0, $zero, frame_pacman_not_change
+        addi $a1, $zero, 0x37
+        jal display_block
+        sub $a0, $a0, $t9
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x2
+        add $s0, $s0, $at
+        addi $s0, $s0, 0x100
+        j frame_end
+
+
+    frame_kbd_left:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        addi $a0, $a0, -1   # x -= 1
+        jal is_blocked
+        bne $v0, $zero, frame_pacman_not_change
+        addi $a1, $zero, 0x33
+        jal display_block
+        addi $a0, $a0, 1
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x3
+        add $s0, $s0, $at
+        addi $s0, $s0, -1
+        j frame_end
+
+    frame_pacman_not_change:
+        srl $a0, $s0, 16
+        addi $at, $zero, 0x0
+        beq $a0, $at, frame_still_up
+        addi $at, $zero, 0x1
+        beq $a0, $at, frame_still_right
+        addi $at, $zero, 0x2
+        beq $a0, $at, frame_still_down
+        addi $at, $zero, 0x3
+        beq $a0, $at, frame_still_left
+        
+        sw $k1, 0($k1)
+        lw $ra, 0($sp)
+        lw $t4, 4($sp)
+        addi $sp, $sp, 8
+        jr $ra
+
+    frame_still_left:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        addi $a0, $a0, -1   # x -= 1
+        jal is_blocked
+        bne $v0, $zero, frame_end
+        addi $a1, $zero, 0x33
+        jal display_block
+        addi $a0, $a0, 1
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x3
+        add $s0, $s0, $at
+        addi $s0, $s0, -1   # x -= 1
+        j frame_end
+
+    frame_still_up:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        sub $a0, $a0, $t9   # y -= 1
+        jal is_blocked
+        bne $v0, $zero, frame_end
+        addi $a1, $zero, 0x31
+        jal display_block
+        add $a0, $a0, $t9
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x0
+        add $s0, $s0, $at
+        addi $s0, $s0, -0x100
+        j frame_end
+
+    frame_still_down:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        add $a0, $a0, $t9   # y += 1
+        jal is_blocked
+        bne $v0, $zero, frame_end
+        addi $a1, $zero, 0x37
+        jal display_block
+        sub $a0, $a0, $t9
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x2
+        add $s0, $s0, $at
+        addi $s0, $s0, 0x100
+        j frame_end
+
+    frame_still_right:
+        srl $at, $s0, 8
+        andi $at, $at, 0xFF
+        add $a0, $at, $zero
+        sll $a0, $a0, 16
+        andi $at, $s0, 0xFF
+        add $a0, $a0, $at
+        addi $a0, $a0, 1   # x += 1
+        jal is_blocked
+        bne $v0, $zero, frame_end
+        addi $a1, $zero, 0x35
+        jal display_block
+        addi $a0, $a0, -1
+        jal reset_block
+        andi $at, $s0, 0x7FFF
+        lui $s0, 0x1
+        add $s0, $s0, $at
+        addi $s0, $s0, 1   # x += 1
+        j frame_end
+
+    frame_penetrate_left:
+        lui $a0, 0xE
+        jal reset_block
+        addi $a0, $a0, 0x1B
+        addi $a1, $zero, 0x33
+        jal display_block
+        lui $s0, 0x3
+        addi $s0, $s0, 0x0E1B
+        j frame_end
+
+    frame_penetrate_right:
+        lui $a0, 0xE
+        jal display_block
+        addi $a0, $a0, 0x1B
+        addi $a1, $zero, 0x33
+        jal reset_block
+        lui $s0, 0x1
+        addi $s0, $s0, 0x0E00
+        j frame_end
+
+    frame_end:
+    lw $ra, 0($sp)
+    lw $t4, 4($sp)
+    addi $sp, $sp, 8
+    jr $ra
+
+# function: tell a0 (x:low, y:high) a wall, $v0 = 1 means is wall
+# ruin t1 t2 t3
+is_blocked:
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+    add $at, $a0, $zero
+    andi $t2, $at, 0x00FF    # x
+    srl $at, $at, 16
+    andi $t3, $at, 0x00FF    # y
     
-    addi $t4, $t4, 1
-    bne $t4, $t6, maze_loop
-    
-    sub $a0, $a0, $t4
-    add $a0, $a0, $t9
+    sll $at, $t3, 3
+    sub $t3, $at, $t3   # y *= 7
+    srl $at, $t2, 2     # x /= 4    t2 is still x
+    add $t3, $at, $t3   # index of word
+    sll $t3, $t3 ,2     # addr
+    add $t3, $t3, $gp   # add maze addr start
+    lw  $t1, 0($t3)
+
+    andi $t2, $t2, 0x3  # x %= 4
+    slti $at, $t2, 1    # x = 0
+    beq $at, $t8, is_blocked_shift_3
+    slti $at, $t2, 2    # x = 1
+    beq $at, $t8, is_blocked_shift_2
+    slti $at, $t2, 3    # x = 2
+    beq $at, $t8, is_blocked_shift_1
+    j is_blocked_shift_end
+    is_blocked_shift_3:
+    srl $t1, $t1, 24
+    j is_blocked_shift_end
+    is_blocked_shift_2:
+    srl $t1, $t1, 16
+    j is_blocked_shift_end
+    is_blocked_shift_1:
+    srl $t1, $t1, 8
+    is_blocked_shift_end:
+    andi $t3, $t1, 0xFF
+
+    addi $v0, $zero, 0
+    beq $t3, $zero, is_wall
+    addi $at, $zero, 0x20
+    beq $t3, $at, is_wall
+    addi $v0, $zero, 1
+    is_wall:
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr $ra
+
+
+# function: dispaly original maze
+# ruin t4-t7 a0
+maze_init:
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
 
     add $t4, $zero, $zero
-    addi $t5, $t5, 1
-    bne $t5, $t7, maze_loop
+    add $t5, $zero, $zero
+    addi $t6, $zero, 28
+    addi $t7, $zero, 32
+    addi $a0, $a0, 0
+    maze_loop:
+        jal reset_block
+        addi $a0, $a0, 1
+        
+        addi $t4, $t4, 1
+        bne $t4, $t6, maze_loop
+        
+        sub $a0, $a0, $t4
+        add $a0, $a0, $t9
 
-dead:
-    j dead
+        add $t4, $zero, $zero
+        addi $t5, $t5, 1
+        bne $t5, $t7, maze_loop
 
-# function: display original maze at a0 (x:low, y:high)
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr $ra
+
+
+
+# function: display original maze block at a0 (x:low, y:high)
+# ruin t1-t3
 reset_block:
     addi $sp, $sp, -28
     sw $ra, 0($sp)
@@ -63,11 +386,11 @@ reset_block:
 
     andi $t2, $t2, 0x3  # x %= 4
     slti $at, $t2, 1    # x = 0
-    beq $at, $fp, shift_3
+    beq $at, $t8, shift_3
     slti $at, $t2, 2    # x = 1
-    beq $at, $fp, shift_2
+    beq $at, $t8, shift_2
     slti $at, $t2, 3    # x = 2
-    beq $at, $fp, shift_1
+    beq $at, $t8, shift_1
     j shift_end
     shift_3:
     srl $t1, $t1, 24
@@ -114,11 +437,13 @@ a0_times_15:
     jr $ra
 
 # function: display block at a0 (low, high) with type a1
+# ruin t0-t3 t5
 display_block:
-    addi $sp, $sp, -12
+    addi $sp, $sp, -16
     sw $ra, 0($sp)
     sw $a0, 4($sp)
     sw $a1, 8($sp)
+    sw $t4, 12($sp)
     
     andi $t2, $a0, 0x00FF    # x
     srl $a0, $a0, 16
@@ -141,11 +466,13 @@ display_block:
     addi $t1, $zero, 0xF
     beq $at, $t1, pink_door_type
     slti $at, $a1, 0x16
-    beq $at, $fp, black_type
+    beq $at, $t8, black_type
     slti $at, $a1, 0x1c
-    beq $at, $fp, gray_type_special
+    beq $at, $t8, gray_type_special
     slti $at, $a1, 0x30
-    beq $at, $fp, gray_type_common
+    beq $at, $t8, gray_type_common
+    slti $at, $a1, 0x40
+    beq $at, $t8, pacman_type
     sw $k1, 0($k1)  # error type
     jr $ra
 
@@ -305,12 +632,52 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_common_loop
+    j display_block_end
+
+    pacman_type:
+        addi $a1, $a1, -0x30
+        add $a0, $a1, $zero
+        jal a0_times_15
+        sll $a0, $a0, 2     #  * 4 to get addr
+        add $a0, $a0, $gp
+        addi $t3, $a0, 0x09F4   # skip maze, block pic, pacman addr starts
+
+        addi $t4, $zero, 15
+        addi $t5, $zero, 15
+        pacman_type_loop:
+            lw $t0, 0($t3)
+        pacman_type_loop_inner:
+            srl $t0, $t0, 2
+            andi $at, $t0, 0x3  # lowest 2 bits
+            beq $at, $zero, pacman_type_loop_0
+            # TOGGLE
+            # lui $at, 0x0fe0
+            addi $at, $zero, 0x0fe0
+            j pacman_type_loop_0_end
+            pacman_type_loop_0:
+            # lui $at, 0x0111
+            addi $at, $zero, 0x0111
+            pacman_type_loop_0_end:
+            # sw $at, 0($t2)
+            sh $at, 0($t2)
+            # addi $t2, $t2, -4
+            addi $t2, $t2, -2
+            addi $t4, $t4, -1
+            bne $t4, $0, pacman_type_loop_inner
+            addi $t3, $t3, 4
+            # addi $t2, $t2, 1740     # (420 + 15) * 4
+            addi $t2, $t2, 1310   # for emulator
+            addi $t4, $zero, 15
+            addi $t5, $t5, -1
+            bne $t5, $0, pacman_type_loop
+
 
     display_block_end:
         lw $ra, 0($sp)
         lw $a0, 4($sp)
         lw $a1, 8($sp)
-        addi $sp, $sp, 12
+        lw $t4, 12($sp)
+        addi $sp, $sp, 16
         jr $ra
 
 data:
