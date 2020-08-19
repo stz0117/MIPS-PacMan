@@ -23,13 +23,11 @@ main:
     addi $s1, $zero, 0x0e0c
     jal maze_init
 
-    lui $a0, 0x17
-    addi $a0, $a0, 0xd
+    addi $a0, $zero, 0x170d
     addi $a1, $zero, 0x30
     jal display_block
 
-    lui $a0, 0xe
-    addi $a0, $a0, 0xc
+    addi $a0, $zero, 0x0e0c
     addi $a1, $zero, 0x44
     jal display_block
 
@@ -59,12 +57,6 @@ frame:
     sw $s7, 28($sp)
 
     add $s7, $a0, $zero
-    add $a0, $s0, $zero
-    jal convert
-    add $s6, $v0, $zero
-    add $a0, $s1, $zero
-    jal convert
-    add $t1, $v0, $zero
 
     # spirit next
 
@@ -151,20 +143,13 @@ frame:
     j frame_pacman_not_change
 
     frame_kbd_up:
-        # s0: 16 - pos  9:8 - y  1:0 - x
-        # a0: 17:16 - y  1:0 - x
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
-        sub $a0, $a0, $t9   # y -= 1
+        andi $a0, $s0, 0x7FFF
+        addi $a0, $a0, -0x0100   # y -= 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a1, $zero, 0x31
         jal display_block
-        add $a0, $a0, $t9
+        addi $a0, $a0, 0x0100
         jal reset_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x0
@@ -173,12 +158,7 @@ frame:
         j frame_end
 
     frame_kbd_right:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
+        andi $a0, $s0, 0x7FFF
         addi $a0, $a0, 1   # x += 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
@@ -193,18 +173,13 @@ frame:
         j frame_end
 
     frame_kbd_down:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
-        add $a0, $a0, $t9   # y += 1
+        andi $a0, $s0, 0x7FFF
+        addi $a0, $a0, 0x0100   # y += 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a1, $zero, 0x37
         jal display_block
-        sub $a0, $a0, $t9
+        addi $a0, $a0, -0x0100
         jal reset_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x2
@@ -214,12 +189,7 @@ frame:
 
 
     frame_kbd_left:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
+        andi $a0, $s0, 0x7FFF
         addi $a0, $a0, -1   # x -= 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
@@ -246,12 +216,7 @@ frame:
         j frame_end
 
     frame_still_left:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
+        andi $a0, $s0, 0x7FFF
         addi $a0, $a0, -1   # x -= 1
         jal is_blocked
         bne $v0, $zero, frame_end
@@ -266,18 +231,13 @@ frame:
         j frame_end
 
     frame_still_up:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
-        sub $a0, $a0, $t9   # y -= 1
+        andi $a0, $s0, 0x7FFF
+        addi $a0, $a0, -0x0100   # y -= 1
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a1, $zero, 0x31
         jal display_block
-        add $a0, $a0, $t9
+        addi $a0, $a0, 0x0100
         jal reset_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x0
@@ -286,18 +246,13 @@ frame:
         j frame_end
 
     frame_still_down:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
-        add $a0, $a0, $t9   # y += 1
+        andi $a0, $s0, 0x7FFF
+        addi $a0, $a0, 0x0100   # y += 1
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a1, $zero, 0x37
         jal display_block
-        sub $a0, $a0, $t9
+        addi $a0, $a0, -0x0100
         jal reset_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x2
@@ -306,12 +261,7 @@ frame:
         j frame_end
 
     frame_still_right:
-        srl $at, $s0, 8
-        andi $at, $at, 0xFF
-        add $a0, $at, $zero
-        sll $a0, $a0, 16
-        andi $at, $s0, 0xFF
-        add $a0, $a0, $at
+        andi $a0, $s0, 0x7FFF
         addi $a0, $a0, 1   # x += 1
         jal is_blocked
         bne $v0, $zero, frame_end
@@ -326,7 +276,7 @@ frame:
         j frame_end
 
     frame_penetrate_left:
-        lui $a0, 0xE
+        addi $a0, $zero, 0x0E00
         jal reset_block
         addi $a0, $a0, 0x1B
         addi $a1, $zero, 0x33
@@ -336,7 +286,7 @@ frame:
         j frame_end
 
     frame_penetrate_right:
-        lui $a0, 0xE
+        addi $a0, $zero, 0x0E00
         jal display_block
         addi $a0, $a0, 0x1B
         addi $a1, $zero, 0x33
@@ -355,16 +305,6 @@ frame:
     lw $s6, 24($sp)
     lw $s7, 28($sp)
     addi $sp, $sp, 32
-    jr $ra
-
-# function: convert a0 low y,x to high-low y,x
-convert:
-    srl $at, $a0, 8     # low: y:x
-    andi $at, $at, 0xFF
-    add $v0, $at, $zero
-    sll $v0, $v0, 16
-    andi $at, $a0, 0xFF
-    add $v0, $v0, $at   # high:y, low:x
     jr $ra
 
 # function: given the status (in a0) and the target of the spirit (in a1)
@@ -399,7 +339,7 @@ spirit_next_dir:
     addi $at, $zero, 0x0
     beq $v1, $at, spirit_next_dir_not_up
     add $s7, $a0, $zero
-    sub $a0, $a0, $t9
+    addi $a0, $a0, -0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_up
     jal distance2_a0_a1
@@ -429,7 +369,7 @@ spirit_next_dir:
     addi $at, $zero, 0x0
     beq $v1, $at, spirit_next_dir_not_down
     add $s7, $a0, $zero
-    add $a0, $a0, $t9
+    addi $a0, $a0, 0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_down
     jal distance2_a0_a1
@@ -467,7 +407,7 @@ spirit_next_dir:
     addi $sp, $sp, 28
     jr $ra
 
-# function: return the distance square of two position a0 a1 (x:low, y:high) 
+# function: return the distance square of two position a0 a1 (9:8 y, 1:0 x) 
 distance2_a0_a1:
     addi $sp, $sp, -20
     sw $ra, 0($sp)
@@ -489,8 +429,8 @@ distance2_a0_a1:
     add $v0, $a0, $zero
     add $a0, $s6, $zero
 
-    sll $t0, $a0, 16
-    sll $t1, $a1, 16
+    sll $t0, $a0, 8
+    sll $t1, $a1, 8
     slt $at, $a0, $a1  # at = 0 => a0 >= a1
     sub $t2, $t0, $t1
     beq $at, $zero, distance2_y_bigger
@@ -523,7 +463,7 @@ a0_square:
     a0_square_loop_end:
     jr $at
 
-# function: tell whether a0 (x:low, y:high) a wall, $v0 = 1 means is wall
+# function: tell whether a0 (9:8 y, 1:0 x) a wall, $v0 = 1 means is wall
 # ruin t1 t2 t3
 is_blocked:
     addi $sp, $sp, -16
@@ -531,9 +471,10 @@ is_blocked:
     sw $t1, 4($sp)
     sw $t2, 8($sp)
     sw $t3, 12($sp)
+
     add $at, $a0, $zero
     andi $t2, $at, 0x00FF    # x
-    srl $at, $at, 16
+    srl $at, $at, 8
     andi $t3, $at, 0x00FF    # y
     
     sll $at, $t3, 3
@@ -605,7 +546,7 @@ maze_init:
         bne $t4, $t6, maze_loop
         
         sub $a0, $a0, $t4
-        add $a0, $a0, $t9
+        addi $a0, $a0, 0x0100
 
         add $t4, $zero, $zero
         addi $t5, $t5, 1
@@ -620,7 +561,7 @@ maze_init:
     addi $sp, $sp, 24
     jr $ra
 
-# function: display original maze block at a0 (x:low, y:high)
+# function: display original maze block at a0 (9:8 y, 1:0 x)
 reset_block:
     addi $sp, $sp, -40
     sw $ra, 0($sp)
@@ -636,7 +577,7 @@ reset_block:
 
     add $at, $a0, $zero
     andi $t2, $at, 0x00FF    # x
-    srl $at, $at, 16
+    srl $at, $at, 8
     andi $t3, $at, 0x00FF    # y
     
     sll $at, $t3, 3
@@ -716,7 +657,7 @@ display_block:
     sw $t5, 28($sp)
 
     andi $t2, $a0, 0x00FF    # x
-    srl $a0, $a0, 16
+    srl $a0, $a0, 8
     andi $t3, $a0, 0x00FF    # y
     
     add $a0, $t3, $zero
