@@ -33,14 +33,14 @@ main:
     addi $a1, $zero, 0x44
     jal display_block
 
-    lui $t4, 0x001F
+    lui $t4, 0x000F
     read_in_loop:
         lw $a0, 0($fp)
 
         addi $t4, $t4, -1
         bne $t4, $zero, read_in_loop
         jal frame
-        lui $t4, 0x001F
+        lui $t4, 0x000F
         j read_in_loop
 
 dead:
@@ -58,14 +58,13 @@ frame:
     sw $s6, 24($sp)
     sw $s7, 28($sp)
 
-    # add $s7, $a0, $zero
-    # add $a0, $s0, $zero
-    # jal convert
-    # add $s6, $v0, $zero
-    # add $a0, $s1, $zero
-    # jal convert
-    # add $t1, $v0, $zero
-    # add $a0, $s7, $zero
+    add $s7, $a0, $zero
+    add $a0, $s0, $zero
+    jal convert
+    add $s6, $v0, $zero
+    add $a0, $s1, $zero
+    jal convert
+    add $t1, $v0, $zero
 
     # spirit next
 
@@ -128,6 +127,7 @@ frame:
     # bilnky_done:
 
     # pacman next
+    add $a0, $s7, $zero
     sw $a0, 0($k1)
     # TOGGLE
     # 
@@ -581,7 +581,6 @@ is_blocked:
     addi $sp, $sp, 16
     jr $ra
 
-
 # function: dispaly original maze
 # ruin t4-t7 a0
 maze_init:
@@ -705,7 +704,6 @@ a0_times_15:
 
 
 # function: displat block a0 with type a1
-
 display_block:
     addi $sp, $sp, -32
     sw $ra, 0($sp)
