@@ -4,57 +4,138 @@ lui $k1, 0xE000     # seg
 # TOGGLE
 #
 lui $fp, 0xB000     # btn
-# addi $gp, $zero, 0x0350   # data seg start TODO, start with maze
 la $gp, data
 addi $sp, $zero, 0x2000   # stack seg at 1024
-
-# game const init
-# pacman pos dir
-lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
-addi $s0, $s0, 0x170d   # position y:x
 
 # other const init
 addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
+
+
 main:
+    # game const init
+    # pacman position and direction
+
+    lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
+    addi $s0, $zero, 0x170d   # position y:x
+    lui $s1, 0x0
+    addi $s1, $zero, 0x0e0c
     jal maze_init
+
     lui $a0, 0x17
     addi $a0, $a0, 0xd
-    addi $a1, $a1, 0x30
+    addi $a1, $zero, 0x30
     jal display_block
 
-    lui $t4, 0x000C
+    lui $a0, 0xe
+    addi $a0, $a0, 0xc
+    addi $a1, $zero, 0x44
+    jal display_block
+
+    lui $t4, 0x001F
     read_in_loop:
-        # TOGGLE
-        # lw $a0, 
         lw $a0, 0($fp)
 
         addi $t4, $t4, -1
         bne $t4, $zero, read_in_loop
         jal frame
-        lui $t4, 0x000C
+        lui $t4, 0x001F
         j read_in_loop
 
+dead:
+    j dead
+
 # function: displat next frame according to current state, input and maze
-# ruin a0
 frame:
-    addi $sp, $sp, -8
+    addi $sp, $sp, -32
     sw $ra, 0($sp)
-    sw $t4, 4($sp)
+    sw $t0, 4($sp)
+    sw $t1, 8($sp)
+    sw $t2, 12($sp)
+    sw $t3, 16($sp)
+    sw $t4, 20($sp)
+    sw $s6, 24($sp)
+    sw $s7, 28($sp)
+
+    # add $s7, $a0, $zero
+    # add $a0, $s0, $zero
+    # jal convert
+    # add $s6, $v0, $zero
+    # add $a0, $s1, $zero
+    # jal convert
+    # add $t1, $v0, $zero
+    # add $a0, $s7, $zero
 
     # spirit next
 
+    # add $a0, $t1, $zero
+    # jal reset_block
+    # add $a1, $s6, $zero
+    # jal spirit_next_dir
+    # addi $at, $zero, 0x0
+    # beq $v0, $at, frame_blinky_up
+    # addi $at, $zero, 0x1
+    # beq $v0, $at, frame_blinky_right
+    # addi $at, $zero, 0x2
+    # beq $v0, $at, frame_blinky_down
+    # addi $at, $zero, 0x3
+    # beq $v0, $at, frame_blinky_left
+
+    # frame_blinky_up:
+    #     andi $at, $s1, 0x7FFF
+    #     lui $s1, 0x0
+    #     add $s1, $s1, $at
+    #     addi $s1, $s1, -0x100
+
+    #     sub $a0, $t1, $t9
+    #     addi $a1, $zero, 0x40
+    #     jal display_block
+    #     j bilnky_done
+
+    # frame_blinky_right:
+    #     andi $at, $s1, 0x7FFF
+    #     lui $s1, 0x1
+    #     add $s1, $s1, $at
+    #     addi $s1, $s1, 1
+
+    #     addi $a0, $t1, 1
+    #     addi $a1, $zero, 0x44
+    #     jal display_block
+    #     j bilnky_done
+
+    # frame_blinky_down:
+    #     andi $at, $s1, 0x7FFF
+    #     lui $s1, 0x2
+    #     add $s1, $s1, $at
+    #     addi $s1, $s1, 0x100
+
+    #     add $a0, $t1, $t9
+    #     addi $a1, $zero, 0x46
+    #     jal display_block
+    #     j bilnky_done
+
+    # frame_blinky_left:
+    #     andi $at, $s1, 0x7FFF
+    #     lui $s1, 0x3
+    #     add $s1, $s1, $at
+    #     addi $s1, $s1, -1
+
+    #     addi $a0, $t1, -1
+    #     addi $a1, $zero, 0x42
+    #     jal display_block
+    
+    # bilnky_done:
 
     # pacman next
     sw $a0, 0($k1)
     # TOGGLE
-    #
+    # 
     lui $at, 0x3
     addi $at, $at, 0x0E00
     beq $s0, $at, frame_penetrate_left
     lui $at, 0x1
-    addi $at, $\ at, 0x0E1B
+    addi $at, $at, 0x0E1B
     beq $s0, $at, frame_penetrate_right
     andi $a0, $a0, 0xF
     addi $at, $zero, 0x0
@@ -67,12 +148,7 @@ frame:
     beq $a0, $at, frame_kbd_right
     addi $at, $zero, 0xD
     beq $a0, $at, frame_kbd_down
-    sw $k1, 0($k1)
-
-    lw $ra, 0($sp)
-    lw $t4, 4($sp)
-    addi $sp, $sp, 8
-    jr $ra
+    j frame_pacman_not_change
 
     frame_kbd_up:
         # s0: 16 - pos  9:8 - y  1:0 - x
@@ -167,12 +243,7 @@ frame:
         beq $a0, $at, frame_still_down
         addi $at, $zero, 0x3
         beq $a0, $at, frame_still_left
-        
-        sw $k1, 0($k1)
-        lw $ra, 0($sp)
-        lw $t4, 4($sp)
-        addi $sp, $sp, 8
-        jr $ra
+        j frame_end
 
     frame_still_left:
         srl $at, $s0, 8
@@ -276,15 +347,190 @@ frame:
 
     frame_end:
     lw $ra, 0($sp)
-    lw $t4, 4($sp)
-    addi $sp, $sp, 8
+    lw $t0, 4($sp)
+    lw $t1, 8($sp)
+    lw $t2, 12($sp)
+    lw $t3, 16($sp)
+    lw $t4, 20($sp)
+    lw $s6, 24($sp)
+    lw $s7, 28($sp)
+    addi $sp, $sp, 32
     jr $ra
 
-# function: tell a0 (x:low, y:high) a wall, $v0 = 1 means is wall
+# function: convert a0 low y,x to high-low y,x
+convert:
+    srl $at, $a0, 8     # low: y:x
+    andi $at, $at, 0xFF
+    add $v0, $at, $zero
+    sll $v0, $v0, 16
+    andi $at, $a0, 0xFF
+    add $v0, $v0, $at   # high:y, low:x
+    jr $ra
+
+# function: given the status (in a0) and the target of the spirit (in a1)
+# returns the next direction
+# there must be a next direction for a spirit, they won't stop until someone catch the pacman
+# ruin v0
+spirit_next_dir:
+    # get the block condition around the spirit
+    addi $sp, $sp, -28
+    sw $ra, 0($sp)
+    sw $t0, 4($sp)
+    sw $a0, 8($sp)
+    sw $a1, 12($sp)
+    sw $s6, 16($sp)
+    sw $s7, 20($sp)
+    sw $v1, 24($sp)
+
+    add $t0, $zero, $zero   # intended direction
+    srl $v1, $a0, 16    # cur direction
+
+    srl $at, $a0, 8     # low: y:x
+    andi $at, $at, 0xFF
+    add $s6, $at, $zero
+    sll $s6, $s6, 16
+    andi $at, $a0, 0xFF
+    add $a0, $s6, $at   # high:y, low:x
+    addi $s6, $zero, 0xFFF # weight
+
+    # TODO penetrate, not change
+
+    # check up
+    addi $at, $zero, 0x0
+    beq $v1, $at, spirit_next_dir_not_up
+    add $s7, $a0, $zero
+    sub $a0, $a0, $t9
+    jal is_blocked
+    bne $v0, $zero, spirit_next_dir_not_up
+    jal distance2_a0_a1
+    slt $at, $v0, $s6
+    beq $at, $zero, spirit_next_dir_not_up
+    addi $t0, $zero, 0x0
+    add $s6, $v0, $zero
+    spirit_next_dir_not_up:
+    add $a0, $s7, $zero
+
+    # check right
+    addi $at, $zero, 0x0
+    beq $v1, $at, spirit_next_dir_not_right
+    add $s7, $a0, $zero
+    addi $a0, $a0, 1
+    jal is_blocked
+    bne $v0, $zero, spirit_next_dir_not_right
+    jal distance2_a0_a1
+    slt $at, $v0, $s6
+    beq $at, $zero, spirit_next_dir_not_right
+    addi $t0, $zero, 0x1
+    add $s6, $v0, $zero
+    spirit_next_dir_not_right:
+    add $a0, $s7, $zero
+
+    # check down
+    addi $at, $zero, 0x0
+    beq $v1, $at, spirit_next_dir_not_down
+    add $s7, $a0, $zero
+    add $a0, $a0, $t9
+    jal is_blocked
+    bne $v0, $zero, spirit_next_dir_not_down
+    jal distance2_a0_a1
+    slt $at, $v0, $s6
+    beq $at, $zero, spirit_next_dir_not_down
+    addi $t0, $zero, 0x2
+    add $s6, $v0, $zero
+    spirit_next_dir_not_down:
+    add $a0, $s7, $zero
+
+    # check left
+    addi $at, $zero, 0x0
+    beq $v1, $at, spirit_next_dir_not_left
+    add $s7, $a0, $zero
+    addi $a0, $a0, -1
+    jal is_blocked
+    bne $v0, $zero, spirit_next_dir_not_left
+    jal distance2_a0_a1
+    slt $at, $v0, $s6
+    beq $at, $zero, spirit_next_dir_not_left
+    addi $t0, $zero, 0x3
+    add $s6, $v0, $zero
+    spirit_next_dir_not_left:
+    add $a0, $s7, $zero
+
+    add $v0, $t0, $zero
+
+    lw $ra, 0($sp)
+    lw $t0, 4($sp)
+    lw $a0, 8($sp)
+    lw $a1, 12($sp)
+    lw $s6, 16($sp)
+    lw $s7, 20($sp)
+    lw $v1, 24($sp)
+    addi $sp, $sp, 28
+    jr $ra
+
+# function: return the distance square of two position a0 a1 (x:low, y:high) 
+distance2_a0_a1:
+    addi $sp, $sp, -20
+    sw $ra, 0($sp)
+    sw $t0, 4($sp)
+    sw $t1, 8($sp)
+    sw $t2, 12($sp)
+    sw $s6, 16($s6)
+
+    andi $t0, $a0, 0xFF
+    andi $t1, $a1, 0xFF
+    slt $at, $a0, $a1  # at = 0 => a0 >= a1
+    sub $t2, $t0, $t1
+    beq $at, $zero, distance2_x_bigger
+    sub $t2, $t1, $t0
+    distance2_x_bigger:
+    add $s6, $a0, $zero
+    add $a0, $t2, $zero
+    jal a0_square
+    add $v0, $a0, $zero
+    add $a0, $s6, $zero
+
+    sll $t0, $a0, 16
+    sll $t1, $a1, 16
+    slt $at, $a0, $a1  # at = 0 => a0 >= a1
+    sub $t2, $t0, $t1
+    beq $at, $zero, distance2_y_bigger
+    sub $t2, $t1, $t0
+    distance2_y_bigger:
+    add $s6, $a0, $zero
+    add $a0, $t2, $zero
+    jal a0_square
+    add $v0, $v0, $a0
+    add $a0, $s6, $zero
+
+    lw $ra, 0($sp)
+    lw $t0, 4($sp)
+    lw $t1, 8($sp)
+    sw $t2, 12($sp)
+    lw $s6, 16($sp)
+    addi $sp, $sp, 20
+    jr $ra
+
+# function: square a0
+# ruin v1
+a0_square:
+    add $at, $a0, $zero
+    add $v1, $a0, $zero
+    add $a0, $zero, $zero
+    a0_square_loop:
+        beq $at, $zero, a0_square_loop_end
+        add $a0, $a0, $v1
+        addi $at, $at, -1
+    a0_square_loop_end:
+    jr $at
+
+# function: tell whether a0 (x:low, y:high) a wall, $v0 = 1 means is wall
 # ruin t1 t2 t3
 is_blocked:
-    addi $sp, $sp, -4
+    addi $sp, $sp, -16
     sw $ra, 0($sp)
+    sw $t1, 4($sp)
+    sw $t2, 8($sp)
+    sw $t3, 12($sp)
     add $at, $a0, $zero
     andi $t2, $at, 0x00FF    # x
     srl $at, $at, 16
@@ -318,21 +564,34 @@ is_blocked:
     andi $t3, $t1, 0xFF
 
     addi $v0, $zero, 0
-    beq $t3, $zero, is_wall
+    beq $t3, $zero, not_wall
     addi $at, $zero, 0x20
-    beq $t3, $at, is_wall
+    beq $t3, $at, not_wall
+    addi $at, $zero, 0x0F
+    beq $t3, $at, not_wall
+    addi $at, $zero, 0x2F
+    beq $t3, $at, not_wall
+
     addi $v0, $zero, 1
-    is_wall:
+    not_wall:
     lw $ra, 0($sp)
-    addi $sp, $sp, 4
+    lw $t1, 4($sp)
+    lw $t2, 8($sp)
+    lw $t3, 12($sp)
+    addi $sp, $sp, 16
     jr $ra
 
 
 # function: dispaly original maze
 # ruin t4-t7 a0
 maze_init:
-    addi $sp, $sp, -4
+    addi $sp, $sp, -24
     sw $ra, 0($sp)
+    sw $t4, 4($sp)
+    sw $t5, 8($sp)
+    sw $t6, 12($sp)
+    sw $t7, 16($sp)
+    sw $a0, 20($sp)
 
     add $t4, $zero, $zero
     add $t5, $zero, $zero
@@ -354,22 +613,27 @@ maze_init:
         bne $t5, $t7, maze_loop
 
     lw $ra, 0($sp)
-    addi $sp, $sp, 4
+    lw $t4, 4($sp)
+    lw $t5, 8($sp)
+    lw $t6, 12($sp)
+    lw $t7, 16($sp)
+    lw $a0, 20($sp)
+    addi $sp, $sp, 24
     jr $ra
 
-
-
 # function: display original maze block at a0 (x:low, y:high)
-# ruin t1-t3
 reset_block:
-    addi $sp, $sp, -28
+    addi $sp, $sp, -40
     sw $ra, 0($sp)
     sw $a0, 4($sp)
     sw $a1, 8($sp)
-    sw $t4, 12($sp)
-    sw $t5, 16($sp)
-    sw $t6, 20($sp)
-    sw $t7, 24($sp)
+    sw $t1, 12($sp)
+    sw $t2, 16($sp)
+    sw $t3, 20($sp)
+    sw $t4, 24($sp)
+    sw $t5, 28($sp)
+    sw $t6, 32($sp)
+    sw $t7, 36($sp)
 
     add $at, $a0, $zero
     andi $t2, $at, 0x00FF    # x
@@ -407,11 +671,14 @@ reset_block:
     lw $ra, 0($sp)
     lw $a0, 4($sp)
     lw $a1, 8($sp)
-    lw $t4, 12($sp)
-    lw $t5, 16($sp)
-    lw $t6, 20($sp)
-    lw $t7, 24($sp)
-    addi $sp, $sp, 28
+    lw $t1, 12($sp)
+    lw $t2, 16($sp)
+    lw $t3, 20($sp)
+    lw $t4, 24($sp)
+    lw $t5, 28($sp)
+    lw $t6, 32($sp)
+    lw $t7, 36($sp)
+    addi $sp, $sp,40
     jr $ra
 
 # function: $a0 times 640 (for emulator)
@@ -436,15 +703,20 @@ a0_times_15:
     sub $a0, $at, $a0   # a0 = 15x
     jr $ra
 
-# function: display block at a0 (low, high) with type a1
-# ruin t0-t3 t5
+
+# function: displat block a0 with type a1
+
 display_block:
-    addi $sp, $sp, -16
+    addi $sp, $sp, -32
     sw $ra, 0($sp)
     sw $a0, 4($sp)
     sw $a1, 8($sp)
-    sw $t4, 12($sp)
-    
+    sw $t1, 12($sp)
+    sw $t2, 16($sp)
+    sw $t3, 20($sp)
+    sw $t4, 24($sp)
+    sw $t5, 28($sp)
+
     andi $t2, $a0, 0x00FF    # x
     srl $a0, $a0, 16
     andi $t3, $a0, 0x00FF    # y
@@ -473,6 +745,8 @@ display_block:
     beq $at, $t8, gray_type_common
     slti $at, $a1, 0x40
     beq $at, $t8, pacman_type
+    slti $at, $a1, 0x50
+    beq $at, $t8, blinky_type
     sw $k1, 0($k1)  # error type
     jr $ra
 
@@ -520,7 +794,7 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pink_door_type_loop
-    j display_block_end
+        j display_block_end
 
     black_type:
         add $a0, $a1, $zero
@@ -557,7 +831,7 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, black_type_loop
-    j display_block_end
+        j display_block_end
 
     gray_type_special:
         add $a0, $a1, $zero
@@ -594,7 +868,7 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_special_loop
-    j display_block_end
+        j display_block_end
 
     gray_type_common:
         addi $a1, $a1, -0x20
@@ -632,7 +906,7 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_common_loop
-    j display_block_end
+        j display_block_end
 
     pacman_type:
         addi $a1, $a1, -0x30
@@ -670,14 +944,76 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pacman_type_loop
+        j display_block_end
 
+    blinky_type:
+        addi $a1, $a1, -0x40
+        add $a0, $a1, $zero
+        jal a0_times_15
+        sll $a0, $a0, 2     #  * 4 to get addr
+        add $a0, $a0, $gp
+        addi $t3, $a0, 0x0C4C   # skip maze, block pic, pacman, spirit addr starts
+
+        addi $t4, $zero, 15
+        addi $t5, $zero, 15
+        blinky_type_loop:
+            lw $t0, 0($t3)
+        blinky_type_loop_inner:
+            srl $t0, $t0, 2
+            andi $t1, $t0, 0x3  # lowest 2 bits
+            beq $t1, $zero, blinky_type_loop_0
+            addi $at, $zero, 0x1
+            beq $t1, $at, blinky_type_loop_1
+            addi $at, $zero, 0x2
+            beq $t1, $at, blinky_type_loop_2
+            addi $at, $zero, 0x3
+            beq $t1, $at, blinky_type_loop_3
+
+            blinky_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
+            addi $at, $zero, 0x0000
+            j blinky_type_loop_0_end
+
+            blinky_type_loop_1:
+            # lui $at, 0x0f31
+            addi $at, $zero, 0x0f31
+            j blinky_type_loop_0_end
+
+            blinky_type_loop_2:
+            # lui $at, 0x0fff
+            addi $at, $zero, 0x0fff
+            j blinky_type_loop_0_end
+
+
+            blinky_type_loop_3:
+            # lui $at, 0x0238
+            addi $at, $zero, 0x0238
+
+            blinky_type_loop_0_end:
+            # sw $at, 0($t2)
+            sh $at, 0($t2)
+            # addi $t2, $t2, -4
+            addi $t2, $t2, -2
+            addi $t4, $t4, -1
+            bne $t4, $0, blinky_type_loop_inner
+            addi $t3, $t3, 4
+            # addi $t2, $t2, 1740     # (420 + 15) * 4
+            addi $t2, $t2, 1310   # for emulator
+            addi $t4, $zero, 15
+            addi $t5, $t5, -1
+            bne $t5, $0, blinky_type_loop
 
     display_block_end:
         lw $ra, 0($sp)
         lw $a0, 4($sp)
         lw $a1, 8($sp)
-        lw $t4, 12($sp)
-        addi $sp, $sp, 16
+        lw $t1, 12($sp)
+        lw $t2, 16($sp)
+        lw $t3, 20($sp)
+        lw $t4, 24($sp)
+        lw $t5, 28($sp)
+        addi $sp, $sp, 32
         jr $ra
 
 data:
