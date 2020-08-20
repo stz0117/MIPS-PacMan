@@ -57,81 +57,14 @@ frame:
     andi $a0, $s1, 0x7FFF
     jal reset_block
 
-    lui $at, 0x3
-    addi $at, $at, 0x0e00
-    bne $s1, $at, frame_blinky_not_0e00
-    lui $s1, 0x3
-    addi $s1, $s1, 0x0e1b
-    addi $a0, $zero, 0x0e1b
-    addi $a1, $zero, 0x42
-    jal display_block
-    j bilnky_done
-    frame_blinky_not_0e00:
-
-    lui $at, 0x1
-    addi $at, $at, 0x0e1b
-    bne $s1, $at, frame_blinky_not_0e1b
-    lui $s1, 0x1
-    addi $s1, $s1, 0x0e00
-    addi $a0, $zero, 0x0e00
-    addi $a1, $zero, 0x44
-    jal display_block
-    j bilnky_done
-    frame_blinky_not_0e1b:
-
-    addi $at, $zero, 0x0e0c
-    bne $a0, $at, frame_blinky_not_0e0c
-    addi $v0, $zero, 0x1
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e0c:
-
-    addi $at, $zero, 0x0e0d
-    bne $a0, $at, frame_blinky_not_0e0d
-    addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e0d:
-
-    addi $at, $zero, 0x0d0d
-    bne $a0, $at, frame_blinky_not_0d0d
-    addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0d0d:
-
-    addi $at, $zero, 0x0c0d
-    bne $a0, $at, frame_blinky_not_0c0d
-    addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0c0d:
-
-    addi $at, $zero, 0x0b0c
-    beq $a0, $at, frame_blinky_cant_change
-    addi $at, $zero, 0x0b0d
-    beq $a0, $at, frame_blinky_cant_change
-    addi $at, $zero, 0x0b0e
-    beq $a0, $at, frame_blinky_cant_change
-    addi $at, $zero, 0x0b0f
-    beq $a0, $at, frame_blinky_cant_change
-    addi $at, $zero, 0x170c
-    beq $a0, $at, frame_blinky_cant_change
-    addi $at, $zero, 0x170f
-    beq $a0, $at, frame_blinky_cant_change
-    j frame_blinky_can_change
-
-    frame_blinky_cant_change:
-    srl $v0, $s1, 16
-    addi $at, $zero, 0x1
-    beq $v0, $at, frame_blinky_assign_dir
-    addi $at, $zero, 0x3
-    beq $v0, $at, frame_blinky_assign_dir
-
-    frame_blinky_can_change:
     add $a0, $s1, $zero
     andi $a1, $s0, 0x7FFF
     jal spirit_next_dir
-    sw $v0, 0($k1)
+    beq $v1, $zero, bilnky_common_move
+    add $s1, $v0, $zero
+    j bilnky_done
 
-    frame_blinky_assign_dir:
-
+    bilnky_common_move:
     addi $at, $zero, 0x0
     beq $v0, $at, frame_blinky_up
     addi $at, $zero, 0x1
@@ -183,7 +116,7 @@ frame:
         andi $a0, $s1, 0x7FFF
         addi $a1, $zero, 0x42
         jal display_block
-    
+
     bilnky_done:
 
     # pacman next
@@ -374,10 +307,99 @@ frame:
 
 # function: given the status (in a0) and the target of the spirit (in a1)
 # returns the next direction
-# there must be a next direction for a spirit, they won't stop until someone catch the pacman
-# ruin v0
 spirit_next_dir:
-    # get the block condition around the spirit
+    addi $sp, $sp, -8
+    sw $ra, 0($sp)
+    sw $t0, 4($sp)
+
+    add $v1, $zero, $zero
+    andi $t0, $a0, 0x7FFF
+
+    lui $at, 0x3
+    addi $at, $at, 0x0e00
+    bne $a0, $at, frame_blinky_not_0e00
+    lui $v0, 0x3
+    addi $v0, $v0, 0x0e1b
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x42
+    jal display_block
+    addi $v1, $zero, 1
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e00:
+
+    lui $at, 0x1
+    addi $at, $at, 0x0e1b
+    bne $a0, $at, frame_blinky_not_0e1b
+    lui $v0, 0x1
+    addi $v0, $v0, 0x0e00
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x44
+    jal display_block
+    addi $v1, $zero, 1
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e1b:
+
+    addi $at, $zero, 0x0e0c
+    bne $t0, $at, frame_blinky_not_0e0c
+    addi $v0, $zero, 0x1
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e0c:
+
+    addi $at, $zero, 0x0e0d
+    bne $t0, $at, frame_blinky_not_0e0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e0d:
+
+    addi $at, $zero, 0x0d0d
+    bne $t0, $at, frame_blinky_not_0d0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0d0d:
+
+    addi $at, $zero, 0x0c0d
+    bne $t0, $at, frame_blinky_not_0c0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0c0d:
+
+    addi $at, $zero, 0x0b0c
+    beq $t0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0d
+    beq $t0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0e
+    beq $t0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0f
+    beq $t0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x170c
+    beq $t0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x170f
+    beq $t0, $at, frame_blinky_cant_change
+    j frame_blinky_can_change
+
+    frame_blinky_cant_change:
+    srl $v0, $a0, 16
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_blinky_assign_dir
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_blinky_assign_dir
+
+    frame_blinky_can_change:
+    andi $a1, $s0, 0x7FFF
+    jal spirit_common_next_dir
+
+    frame_blinky_assign_dir:
+
+    lw $ra, 0($sp)
+    lw $t0, 4($sp)
+    addi $sp, $sp, 8
+    jr $ra
+
+
+# function: given the status (in a0) and the target of the spirit (in a1) when not in special cases
+# returns the next direction
+# there must be a next direction for a spirit, they won't stop until someone catch the pacman
+spirit_common_next_dir:
     addi $sp, $sp, -28
     sw $ra, 0($sp)
     sw $t0, 4($sp)
