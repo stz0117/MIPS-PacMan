@@ -65,7 +65,7 @@ frame:
 
     # pacman
     add $a0, $s6, $zero
-    add $s6, $s1, $zero
+    add $s6, $s0, $zero
     # TOGGLE
     # 
     lui $at, 0x3
@@ -328,6 +328,46 @@ frame:
     # pinky
     add $a0, $s2, $zero
     andi $a1, $s6, 0x7FFF
+    srl $t0, $s6, 16
+    addi $at, $zero, 0x0
+    beq $t0, $at, pinky_target_up
+    addi $at, $zero, 0x1
+    beq $t0, $at, pinky_target_right
+    addi $at, $zero, 0x2
+    beq $t0, $at, pinky_target_down
+    # target left
+    andi $t0, $s6, 0xFF
+    slti $at, $t0, 0x4
+    beq $at, $zero, pinky_left_not_out
+    sub $a1, $a1, $t0
+    j pinky_target_end
+    pinky_left_not_out:
+    addi $a1, $a1, -0x4
+    j pinky_target_end
+
+    pinky_target_up:
+    srl $t0, $s6, 8
+    andi $t0, $t0, 0xFF
+    slti $at, $t0, 0x4
+    beq $at, $zero, pinky_up_not_out
+    sll $t0, $t0, 8
+    sub $a1, $a1, $t0
+    j pinky_target_end
+    pinky_up_not_out:
+    addi $a1, $a1, -0x0400
+    j pinky_target_end
+
+    pinky_target_right:
+    addi $a1, $a1, 0x4
+    j pinky_target_end
+
+    pinky_target_down:
+    addi $a1, $a1, 0x0400
+    pinky_target_end:
+
+
+    sw $a1, 0($k1)
+
     jal spirit_next_dir
     beq $v1, $zero, pinky_common_move
 
@@ -399,7 +439,6 @@ frame:
     pinky_done:
 
 
-    
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $t1, 8($sp)
@@ -481,7 +520,6 @@ spirit_next_dir:
     beq $v0, $at, spirit_next_dir_assign_dir
 
     spirit_next_dir_can_change:
-    andi $a1, $s0, 0x7FFF
     jal spirit_common_next_dir
 
     spirit_next_dir_assign_dir:
@@ -511,15 +549,12 @@ spirit_common_next_dir:
     addi $s6, $zero, 0xFFF # weight
     add $s7, $a0, $zero # a0 backup
 
-    # TODO penetrate, not change
-
     # check up
     addi $at, $zero, 0x2
     beq $v1, $at, spirit_next_dir_not_up
     addi $a0, $a0, -0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_up
-    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_up
@@ -534,7 +569,6 @@ spirit_common_next_dir:
     addi $a0, $a0, 1
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_right
-    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_right
@@ -549,7 +583,6 @@ spirit_common_next_dir:
     addi $a0, $a0, 0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_down
-    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_down
@@ -564,7 +597,6 @@ spirit_common_next_dir:
     addi $a0, $a0, -1
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_left
-    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_left
@@ -573,7 +605,7 @@ spirit_common_next_dir:
     spirit_next_dir_not_left:
 
     add $v0, $t0, $zero
-
+    
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $a0, 8($sp)
