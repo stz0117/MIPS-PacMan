@@ -15,11 +15,13 @@ main:
     # game const init
     # pacman position and direction
 
+    jal maze_init
     lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
     addi $s0, $s0, 0x170d   # position y:x
     lui $s1, 0x1
     addi $s1, $s1, 0x0e0c
-    jal maze_init
+    lui $s2, 0x0
+    addi $s2, $s2, 0x0e0d
 
     addi $a0, $zero, 0x170d
     addi $a1, $zero, 0x30
@@ -27,6 +29,10 @@ main:
 
     addi $a0, $zero, 0x0e0c
     addi $a1, $zero, 0x44
+    jal display_block
+
+    addi $a0, $zero, 0x0e0d
+    addi $a1, $zero, 0x50
     jal display_block
 
     lui $t4, 0x001F
@@ -41,99 +47,25 @@ main:
 
 # function: displat next frame according to current state, input and maze
 frame:
-    addi $sp, $sp, -20
+    addi $sp, $sp, -16
     sw $ra, 0($sp)
     sw $t0, 4($sp)
     sw $t1, 8($sp)
     sw $s6, 12($sp)
-    sw $s7, 16($sp)
 
-    add $s7, $a0, $zero
+    add $s6, $a0, $zero
 
-    # spirit next
-
+    # spirit reset
     # blinky
-    # some special cases
     andi $a0, $s1, 0x7FFF
     jal reset_block
+    # pinky
+    andi $a0, $s2, 0x7FFF
+    jal reset_block
 
-    add $a0, $s1, $zero
-    andi $a1, $s0, 0x7FFF
-    jal spirit_next_dir
-    beq $v1, $zero, bilnky_common_move
-
-    add $s1, $v0, $zero
-    beq $v1, $t8, bilnky_penetrate_1
-    addi $a0, $zero, 0x0e00
-    addi $a1, $zero, 0x44
-    jal display_block
-    j bilnky_done
-    
-    bilnky_penetrate_1:
-    addi $a0, $zero, 0x0e1b
-    addi $a1, $zero, 0x42
-    jal display_block
-    j bilnky_done
-
-    bilnky_common_move:
-    addi $at, $zero, 0x0
-    beq $v0, $at, frame_blinky_up
-    addi $at, $zero, 0x1
-    beq $v0, $at, frame_blinky_right
-    addi $at, $zero, 0x2
-    beq $v0, $at, frame_blinky_down
-    addi $at, $zero, 0x3
-    beq $v0, $at, frame_blinky_left
-
-    frame_blinky_up:
-        andi $at, $s1, 0x7FFF
-        lui $s1, 0x0
-        add $s1, $s1, $at
-        addi $s1, $s1, -0x100
-
-        andi $a0, $s1, 0x7FFF
-        addi $a1, $zero, 0x40
-        jal display_block
-        j bilnky_done
-
-    frame_blinky_right:
-        andi $at, $s1, 0x7FFF
-        lui $s1, 0x1
-        add $s1, $s1, $at
-        addi $s1, $s1, 1
-
-        andi $a0, $s1, 0x7FFF
-        addi $a1, $zero, 0x44
-        jal display_block
-        j bilnky_done
-
-    frame_blinky_down:
-        andi $at, $s1, 0x7FFF
-        lui $s1, 0x2
-        add $s1, $s1, $at
-        addi $s1, $s1, 0x100
-
-        andi $a0, $s1, 0x7FFF
-        addi $a1, $zero, 0x46
-        jal display_block
-        j bilnky_done
-
-    frame_blinky_left:
-        andi $at, $s1, 0x7FFF
-        lui $s1, 0x3
-        add $s1, $s1, $at
-        addi $s1, $s1, -1
-
-        andi $a0, $s1, 0x7FFF
-        addi $a1, $zero, 0x42
-        jal display_block
-    bilnky_done:
-
-
-
-    # pacman next
-    add $a0, $s7, $zero
-    
+    # pacman
+    add $a0, $s6, $zero
+    add $s6, $s1, $zero
     # TOGGLE
     # 
     lui $at, 0x3
@@ -160,10 +92,11 @@ frame:
         addi $a0, $a0, -0x0100   # y -= 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
-        addi $a1, $zero, 0x31
-        jal display_block
         addi $a0, $a0, 0x0100
         jal reset_block
+        addi $a0, $a0, -0x0100
+        addi $a1, $zero, 0x31
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x0
         add $s0, $s0, $at
@@ -175,10 +108,11 @@ frame:
         addi $a0, $a0, 1   # x += 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
-        addi $a1, $zero, 0x35
-        jal display_block
         addi $a0, $a0, -1
         jal reset_block
+        addi $a0, $a0, 1
+        addi $a1, $zero, 0x35
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x1
         add $s0, $s0, $at
@@ -190,10 +124,11 @@ frame:
         addi $a0, $a0, 0x0100   # y += 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
-        addi $a1, $zero, 0x37
-        jal display_block
         addi $a0, $a0, -0x0100
         jal reset_block
+        addi $a0, $a0, 0x0100
+        addi $a1, $zero, 0x37
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x2
         add $s0, $s0, $at
@@ -206,10 +141,11 @@ frame:
         addi $a0, $a0, -1   # x -= 1
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
-        addi $a1, $zero, 0x33
-        jal display_block
         addi $a0, $a0, 1
         jal reset_block
+        addi $a0, $a0, -1
+        addi $a1, $zero, 0x33
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x3
         add $s0, $s0, $at
@@ -233,10 +169,11 @@ frame:
         addi $a0, $a0, -1   # x -= 1
         jal is_blocked
         bne $v0, $zero, frame_end
-        addi $a1, $zero, 0x33
-        jal display_block
         addi $a0, $a0, 1
         jal reset_block
+        addi $a0, $a0, -1
+        addi $a1, $zero, 0x33
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x3
         add $s0, $s0, $at
@@ -248,10 +185,11 @@ frame:
         addi $a0, $a0, -0x0100   # y -= 1
         jal is_blocked
         bne $v0, $zero, frame_end
-        addi $a1, $zero, 0x31
-        jal display_block
         addi $a0, $a0, 0x0100
         jal reset_block
+        addi $a0, $a0, -0x0100
+        addi $a1, $zero, 0x31
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x0
         add $s0, $s0, $at
@@ -263,10 +201,11 @@ frame:
         addi $a0, $a0, 0x0100   # y += 1
         jal is_blocked
         bne $v0, $zero, frame_end
-        addi $a1, $zero, 0x37
-        jal display_block
         addi $a0, $a0, -0x0100
         jal reset_block
+        addi $a0, $a0, 0x0100
+        addi $a1, $zero, 0x37
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x2
         add $s0, $s0, $at
@@ -278,10 +217,11 @@ frame:
         addi $a0, $a0, 1   # x += 1
         jal is_blocked
         bne $v0, $zero, frame_end
-        addi $a1, $zero, 0x35
-        jal display_block
         addi $a0, $a0, -1
         jal reset_block
+        addi $a0, $a0, 1
+        addi $a1, $zero, 0x35
+        jal display_block
         andi $at, $s0, 0x7FFF
         lui $s0, 0x1
         add $s0, $s0, $at
@@ -300,21 +240,171 @@ frame:
 
     frame_penetrate_right:
         addi $a0, $zero, 0x0E00
-        jal display_block
         addi $a0, $a0, 0x1B
-        addi $a1, $zero, 0x33
         jal reset_block
+        addi $a0, $zero, 0x0E00
+        addi $a1, $zero, 0x33
+        jal display_block
         lui $s0, 0x1
         addi $s0, $s0, 0x0E00
         j frame_end
 
     frame_end:
+
+    # spirit next
+    # blinky
+    add $a0, $s1, $zero
+    andi $a1, $s6, 0x7FFF
+    jal spirit_next_dir
+    beq $v1, $zero, blinky_common_move
+
+    add $s1, $v0, $zero
+    beq $v1, $t8, blinky_penetrate_1
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x44
+    jal display_block
+    j blinky_done
+    
+    blinky_penetrate_1:
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x42
+    jal display_block
+    j blinky_done
+
+    blinky_common_move:
+    addi $at, $zero, 0x0
+    beq $v0, $at, frame_blinky_up
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_blinky_right
+    addi $at, $zero, 0x2
+    beq $v0, $at, frame_blinky_down
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_blinky_left
+
+    frame_blinky_up:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x0
+        add $s1, $s1, $at
+        addi $s1, $s1, -0x100
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x40
+        jal display_block
+        j blinky_done
+
+    frame_blinky_right:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x1
+        add $s1, $s1, $at
+        addi $s1, $s1, 1
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x44
+        jal display_block
+        j blinky_done
+
+    frame_blinky_down:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x2
+        add $s1, $s1, $at
+        addi $s1, $s1, 0x100
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x46
+        jal display_block
+        j blinky_done
+
+    frame_blinky_left:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x3
+        add $s1, $s1, $at
+        addi $s1, $s1, -1
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x42
+        jal display_block
+    blinky_done:
+
+    # pinky
+    add $a0, $s2, $zero
+    andi $a1, $s6, 0x7FFF
+    jal spirit_next_dir
+    beq $v1, $zero, pinky_common_move
+
+    add $s2, $v0, $zero
+    beq $v1, $t8, pinky_penetrate_1
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x54
+    jal display_block
+    j pinky_done
+    
+    pinky_penetrate_1:
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x52
+    jal display_block
+    j pinky_done
+
+    pinky_common_move:
+    addi $at, $zero, 0x0
+    beq $v0, $at, frame_pinky_up
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_pinky_right
+    addi $at, $zero, 0x2
+    beq $v0, $at, frame_pinky_down
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_pinky_left
+
+    frame_pinky_up:
+        andi $at, $s2, 0x7FFF
+        lui $s2, 0x0
+        add $s2, $s2, $at
+        addi $s2, $s2, -0x100
+
+        andi $a0, $s2, 0x7FFF
+        addi $a1, $zero, 0x50
+        jal display_block
+        j pinky_done
+
+    frame_pinky_right:
+        andi $at, $s2, 0x7FFF
+        lui $s2, 0x1
+        add $s2, $s2, $at
+        addi $s2, $s2, 1
+
+        andi $a0, $s2, 0x7FFF
+        addi $a1, $zero, 0x54
+        jal display_block
+        j pinky_done
+
+    frame_pinky_down:
+        andi $at, $s2, 0x7FFF
+        lui $s2, 0x2
+        add $s2, $s2, $at
+        addi $s2, $s2, 0x100
+
+        andi $a0, $s2, 0x7FFF
+        addi $a1, $zero, 0x56
+        jal display_block
+        j pinky_done
+
+    frame_pinky_left:
+        andi $at, $s2, 0x7FFF
+        lui $s2, 0x3
+        add $s2, $s2, $at
+        addi $s2, $s2, -1
+
+        andi $a0, $s2, 0x7FFF
+        addi $a1, $zero, 0x52
+        jal display_block
+    pinky_done:
+
+
+    
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $t1, 8($sp)
     lw $s6, 12($sp)
-    lw $s7, 16($sp)
-    addi $sp, $sp, 20
+    addi $sp, $sp, 16
     jr $ra
 
 # function: given the status (in a0) and the target of the spirit (in a1)
@@ -780,8 +870,10 @@ display_block:
     beq $at, $t8, pacman_type
     slti $at, $a1, 0x50
     beq $at, $t8, blinky_type
+    slti $at, $a1, 0x60
+    beq $at, $t8, pinky_type
     sw $k1, 0($k1)  # error type
-    jr $ra
+    jr $ra  # casue stack point error to help debug
 
     pink_door_type:
         slti $at, $a1, 0x2F     # at = 1: black
@@ -1018,7 +1110,6 @@ display_block:
             addi $at, $zero, 0x0fff
             j blinky_type_loop_0_end
 
-
             blinky_type_loop_3:
             # lui $at, 0x0238
             addi $at, $zero, 0x0238
@@ -1036,6 +1127,64 @@ display_block:
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, blinky_type_loop
+        j display_block_end
+
+    pinky_type:
+        addi $a1, $a1, -0x50
+        add $a0, $a1, $zero
+        jal a0_times_15
+        sll $a0, $a0, 2     #  * 4 to get addr
+        add $a0, $a0, $gp
+        addi $t3, $a0, 0x0C4C   # skip maze, block pic, pacman, spirit addr starts
+
+        addi $t4, $zero, 15
+        addi $t5, $zero, 15
+        pinky_type_loop:
+            lw $t0, 0($t3)
+        pinky_type_loop_inner:
+            srl $t0, $t0, 2
+            andi $t1, $t0, 0x3  # lowest 2 bits
+            beq $t1, $zero, pinky_type_loop_0
+            addi $at, $zero, 0x1
+            beq $t1, $at, pinky_type_loop_1
+            addi $at, $zero, 0x2
+            beq $t1, $at, pinky_type_loop_2
+            addi $at, $zero, 0x3
+            beq $t1, $at, pinky_type_loop_3
+
+            pinky_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
+            addi $at, $zero, 0x0000
+            j pinky_type_loop_0_end
+
+            pinky_type_loop_1:
+            # lui $at, 0x0fcd
+            addi $at, $zero, 0x0fcd
+            j pinky_type_loop_0_end
+
+            pinky_type_loop_2:
+            # lui $at, 0x0fff
+            addi $at, $zero, 0x0fff
+            j pinky_type_loop_0_end
+
+            pinky_type_loop_3:
+            # lui $at, 0x0238
+            addi $at, $zero, 0x0238
+
+            pinky_type_loop_0_end:
+            # sw $at, 0($t2)
+            sh $at, 0($t2)
+            # addi $t2, $t2, -4
+            addi $t2, $t2, -2
+            addi $t4, $t4, -1
+            bne $t4, $0, pinky_type_loop_inner
+            addi $t3, $t3, 4
+            # addi $t2, $t2, 1740     # (420 + 15) * 4
+            addi $t2, $t2, 1310   # for emulator
+            addi $t4, $zero, 15
+            addi $t5, $t5, -1
+            bne $t5, $0, pinky_type_loop
 
     display_block_end:
         lw $ra, 0($sp)
