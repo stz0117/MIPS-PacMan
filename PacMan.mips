@@ -11,16 +11,14 @@ addi $sp, $zero, 0x2000   # stack seg at 1024
 addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
-
-
 main:
     # game const init
     # pacman position and direction
 
     lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
-    addi $s0, $zero, 0x170d   # position y:x
-    lui $s1, 0x0
-    addi $s1, $zero, 0x0e0c
+    addi $s0, $s0, 0x170d   # position y:x
+    lui $s1, 0x1
+    addi $s1, $s1, 0x0e0c
     jal maze_init
 
     addi $a0, $zero, 0x170d
@@ -31,96 +29,166 @@ main:
     addi $a1, $zero, 0x44
     jal display_block
 
-    lui $t4, 0x000F
+    lui $t4, 0x001F
     read_in_loop:
         lw $a0, 0($fp)
 
         addi $t4, $t4, -1
         bne $t4, $zero, read_in_loop
         jal frame
-        lui $t4, 0x000F
+        lui $t4, 0x001F
         j read_in_loop
-
-dead:
-    j dead
 
 # function: displat next frame according to current state, input and maze
 frame:
-    addi $sp, $sp, -32
+    addi $sp, $sp, -20
     sw $ra, 0($sp)
     sw $t0, 4($sp)
     sw $t1, 8($sp)
-    sw $t2, 12($sp)
-    sw $t3, 16($sp)
-    sw $t4, 20($sp)
-    sw $s6, 24($sp)
-    sw $s7, 28($sp)
+    sw $s6, 12($sp)
+    sw $s7, 16($sp)
 
     add $s7, $a0, $zero
 
     # spirit next
 
-    # add $a0, $t1, $zero
-    # jal reset_block
-    # add $a1, $s6, $zero
-    # jal spirit_next_dir
-    # addi $at, $zero, 0x0
-    # beq $v0, $at, frame_blinky_up
-    # addi $at, $zero, 0x1
-    # beq $v0, $at, frame_blinky_right
-    # addi $at, $zero, 0x2
-    # beq $v0, $at, frame_blinky_down
-    # addi $at, $zero, 0x3
-    # beq $v0, $at, frame_blinky_left
+    # blinky
+    # some special cases
+    andi $a0, $s1, 0x7FFF
+    jal reset_block
 
-    # frame_blinky_up:
-    #     andi $at, $s1, 0x7FFF
-    #     lui $s1, 0x0
-    #     add $s1, $s1, $at
-    #     addi $s1, $s1, -0x100
+    lui $at, 0x3
+    addi $at, $at, 0x0e00
+    bne $s1, $at, frame_blinky_not_0e00
+    lui $s1, 0x3
+    addi $s1, $s1, 0x0e1b
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x42
+    jal display_block
+    j bilnky_done
+    frame_blinky_not_0e00:
 
-    #     sub $a0, $t1, $t9
-    #     addi $a1, $zero, 0x40
-    #     jal display_block
-    #     j bilnky_done
+    lui $at, 0x1
+    addi $at, $at, 0x0e1b
+    bne $s1, $at, frame_blinky_not_0e1b
+    lui $s1, 0x1
+    addi $s1, $s1, 0x0e00
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x44
+    jal display_block
+    j bilnky_done
+    frame_blinky_not_0e1b:
 
-    # frame_blinky_right:
-    #     andi $at, $s1, 0x7FFF
-    #     lui $s1, 0x1
-    #     add $s1, $s1, $at
-    #     addi $s1, $s1, 1
+    addi $at, $zero, 0x0e0c
+    bne $a0, $at, frame_blinky_not_0e0c
+    addi $v0, $zero, 0x1
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e0c:
 
-    #     addi $a0, $t1, 1
-    #     addi $a1, $zero, 0x44
-    #     jal display_block
-    #     j bilnky_done
+    addi $at, $zero, 0x0e0d
+    bne $a0, $at, frame_blinky_not_0e0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0e0d:
 
-    # frame_blinky_down:
-    #     andi $at, $s1, 0x7FFF
-    #     lui $s1, 0x2
-    #     add $s1, $s1, $at
-    #     addi $s1, $s1, 0x100
+    addi $at, $zero, 0x0d0d
+    bne $a0, $at, frame_blinky_not_0d0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0d0d:
 
-    #     add $a0, $t1, $t9
-    #     addi $a1, $zero, 0x46
-    #     jal display_block
-    #     j bilnky_done
+    addi $at, $zero, 0x0c0d
+    bne $a0, $at, frame_blinky_not_0c0d
+    addi $v0, $zero, 0x0
+    j frame_blinky_assign_dir
+    frame_blinky_not_0c0d:
 
-    # frame_blinky_left:
-    #     andi $at, $s1, 0x7FFF
-    #     lui $s1, 0x3
-    #     add $s1, $s1, $at
-    #     addi $s1, $s1, -1
+    addi $at, $zero, 0x0b0c
+    beq $a0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0d
+    beq $a0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0e
+    beq $a0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x0b0f
+    beq $a0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x170c
+    beq $a0, $at, frame_blinky_cant_change
+    addi $at, $zero, 0x170f
+    beq $a0, $at, frame_blinky_cant_change
+    j frame_blinky_can_change
 
-    #     addi $a0, $t1, -1
-    #     addi $a1, $zero, 0x42
-    #     jal display_block
+    frame_blinky_cant_change:
+    srl $v0, $s1, 16
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_blinky_assign_dir
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_blinky_assign_dir
+
+    frame_blinky_can_change:
+    add $a0, $s1, $zero
+    andi $a1, $s0, 0x7FFF
+    jal spirit_next_dir
+    sw $v0, 0($k1)
+
+    frame_blinky_assign_dir:
+
+    addi $at, $zero, 0x0
+    beq $v0, $at, frame_blinky_up
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_blinky_right
+    addi $at, $zero, 0x2
+    beq $v0, $at, frame_blinky_down
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_blinky_left
+
+    frame_blinky_up:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x0
+        add $s1, $s1, $at
+        addi $s1, $s1, -0x100
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x40
+        jal display_block
+        j bilnky_done
+
+    frame_blinky_right:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x1
+        add $s1, $s1, $at
+        addi $s1, $s1, 1
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x44
+        jal display_block
+        j bilnky_done
+
+    frame_blinky_down:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x2
+        add $s1, $s1, $at
+        addi $s1, $s1, 0x100
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x46
+        jal display_block
+        j bilnky_done
+
+    frame_blinky_left:
+        andi $at, $s1, 0x7FFF
+        lui $s1, 0x3
+        add $s1, $s1, $at
+        addi $s1, $s1, -1
+
+        andi $a0, $s1, 0x7FFF
+        addi $a1, $zero, 0x42
+        jal display_block
     
-    # bilnky_done:
+    bilnky_done:
 
     # pacman next
     add $a0, $s7, $zero
-    sw $a0, 0($k1)
+    
     # TOGGLE
     # 
     lui $at, 0x3
@@ -299,12 +367,9 @@ frame:
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $t1, 8($sp)
-    lw $t2, 12($sp)
-    lw $t3, 16($sp)
-    lw $t4, 20($sp)
-    lw $s6, 24($sp)
-    lw $s7, 28($sp)
-    addi $sp, $sp, 32
+    lw $s6, 12($sp)
+    lw $s7, 16($sp)
+    addi $sp, $sp, 20
     jr $ra
 
 # function: given the status (in a0) and the target of the spirit (in a1)
@@ -324,76 +389,70 @@ spirit_next_dir:
 
     add $t0, $zero, $zero   # intended direction
     srl $v1, $a0, 16    # cur direction
-
-    srl $at, $a0, 8     # low: y:x
-    andi $at, $at, 0xFF
-    add $s6, $at, $zero
-    sll $s6, $s6, 16
-    andi $at, $a0, 0xFF
-    add $a0, $s6, $at   # high:y, low:x
+    andi $a0, $a0, 0x7FFF
     addi $s6, $zero, 0xFFF # weight
+    add $s7, $a0, $zero # a0 backup
 
     # TODO penetrate, not change
 
     # check up
-    addi $at, $zero, 0x0
+    addi $at, $zero, 0x2
     beq $v1, $at, spirit_next_dir_not_up
-    add $s7, $a0, $zero
     addi $a0, $a0, -0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_up
+    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_up
     addi $t0, $zero, 0x0
     add $s6, $v0, $zero
     spirit_next_dir_not_up:
-    add $a0, $s7, $zero
 
     # check right
-    addi $at, $zero, 0x0
+    add $a0, $s7, $zero
+    addi $at, $zero, 0x3
     beq $v1, $at, spirit_next_dir_not_right
-    add $s7, $a0, $zero
     addi $a0, $a0, 1
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_right
+    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_right
     addi $t0, $zero, 0x1
     add $s6, $v0, $zero
     spirit_next_dir_not_right:
-    add $a0, $s7, $zero
 
     # check down
+    add $a0, $s7, $zero
     addi $at, $zero, 0x0
     beq $v1, $at, spirit_next_dir_not_down
-    add $s7, $a0, $zero
     addi $a0, $a0, 0x0100
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_down
+    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_down
     addi $t0, $zero, 0x2
     add $s6, $v0, $zero
     spirit_next_dir_not_down:
-    add $a0, $s7, $zero
 
     # check left
-    addi $at, $zero, 0x0
+    add $a0, $s7, $zero
+    addi $at, $zero, 0x1
     beq $v1, $at, spirit_next_dir_not_left
-    add $s7, $a0, $zero
     addi $a0, $a0, -1
     jal is_blocked
     bne $v0, $zero, spirit_next_dir_not_left
+    add $a1, $s0, $zero
     jal distance2_a0_a1
     slt $at, $v0, $s6
     beq $at, $zero, spirit_next_dir_not_left
     addi $t0, $zero, 0x3
     add $s6, $v0, $zero
     spirit_next_dir_not_left:
-    add $a0, $s7, $zero
 
     add $v0, $t0, $zero
 
@@ -414,11 +473,11 @@ distance2_a0_a1:
     sw $t0, 4($sp)
     sw $t1, 8($sp)
     sw $t2, 12($sp)
-    sw $s6, 16($s6)
+    sw $s6, 16($sp)
 
     andi $t0, $a0, 0xFF
     andi $t1, $a1, 0xFF
-    slt $at, $a0, $a1  # at = 0 => a0 >= a1
+    slt $at, $t0, $t1  # at = 0 => t0 >= t1
     sub $t2, $t0, $t1
     beq $at, $zero, distance2_x_bigger
     sub $t2, $t1, $t0
@@ -429,9 +488,11 @@ distance2_a0_a1:
     add $v0, $a0, $zero
     add $a0, $s6, $zero
 
-    sll $t0, $a0, 8
-    sll $t1, $a1, 8
-    slt $at, $a0, $a1  # at = 0 => a0 >= a1
+    srl $t0, $a0, 8
+    srl $t1, $a1, 8
+    andi $t0, $t0, 0xFF
+    andi $t1, $t1, 0xFF
+    slt $at, $t0, $t1  # at = 0 => t0 >= t1
     sub $t2, $t0, $t1
     beq $at, $zero, distance2_y_bigger
     sub $t2, $t1, $t0
@@ -445,7 +506,7 @@ distance2_a0_a1:
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $t1, 8($sp)
-    sw $t2, 12($sp)
+    lw $t2, 12($sp)
     lw $s6, 16($sp)
     addi $sp, $sp, 20
     jr $ra
@@ -453,6 +514,8 @@ distance2_a0_a1:
 # function: square a0
 # ruin v1
 a0_square:
+    addi $sp, $sp, -4
+    sw $v1, 0($sp)
     add $at, $a0, $zero
     add $v1, $a0, $zero
     add $a0, $zero, $zero
@@ -460,8 +523,11 @@ a0_square:
         beq $at, $zero, a0_square_loop_end
         add $a0, $a0, $v1
         addi $at, $at, -1
+        j a0_square_loop
     a0_square_loop_end:
-    jr $at
+    lw $v1, 0($sp)
+    addi $sp, $sp, 4
+    jr $ra
 
 # function: tell whether a0 (9:8 y, 1:0 x) a wall, $v0 = 1 means is wall
 # ruin t1 t2 t3
