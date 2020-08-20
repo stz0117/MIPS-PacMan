@@ -61,7 +61,18 @@ frame:
     andi $a1, $s0, 0x7FFF
     jal spirit_next_dir
     beq $v1, $zero, bilnky_common_move
+
     add $s1, $v0, $zero
+    beq $v1, $t8, bilnky_penetrate_1
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x44
+    jal display_block
+    j bilnky_done
+    
+    bilnky_penetrate_1:
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x42
+    jal display_block
     j bilnky_done
 
     bilnky_common_move:
@@ -116,8 +127,9 @@ frame:
         andi $a0, $s1, 0x7FFF
         addi $a1, $zero, 0x42
         jal display_block
-
     bilnky_done:
+
+
 
     # pacman next
     add $a0, $s7, $zero
@@ -317,78 +329,72 @@ spirit_next_dir:
 
     lui $at, 0x3
     addi $at, $at, 0x0e00
-    bne $a0, $at, frame_blinky_not_0e00
+    bne $a0, $at, spirit_next_dir_not_0e00
     lui $v0, 0x3
     addi $v0, $v0, 0x0e1b
-    addi $a0, $zero, 0x0e1b
-    addi $a1, $zero, 0x42
-    jal display_block
     addi $v1, $zero, 1
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e00:
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0e00:
 
     lui $at, 0x1
     addi $at, $at, 0x0e1b
-    bne $a0, $at, frame_blinky_not_0e1b
+    bne $a0, $at, spirit_next_dir_not_0e1b
     lui $v0, 0x1
     addi $v0, $v0, 0x0e00
-    addi $a0, $zero, 0x0e00
-    addi $a1, $zero, 0x44
-    jal display_block
-    addi $v1, $zero, 1
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e1b:
+    addi $v1, $zero, 2
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0e1b:
 
     addi $at, $zero, 0x0e0c
-    bne $t0, $at, frame_blinky_not_0e0c
+    bne $t0, $at, spirit_next_dir_not_0e0c
     addi $v0, $zero, 0x1
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e0c:
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0e0c:
 
     addi $at, $zero, 0x0e0d
-    bne $t0, $at, frame_blinky_not_0e0d
+    bne $t0, $at, spirit_next_dir_not_0e0d
     addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0e0d:
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0e0d:
 
     addi $at, $zero, 0x0d0d
-    bne $t0, $at, frame_blinky_not_0d0d
+    bne $t0, $at, spirit_next_dir_not_0d0d
     addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0d0d:
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0d0d:
 
     addi $at, $zero, 0x0c0d
-    bne $t0, $at, frame_blinky_not_0c0d
+    bne $t0, $at, spirit_next_dir_not_0c0d
     addi $v0, $zero, 0x0
-    j frame_blinky_assign_dir
-    frame_blinky_not_0c0d:
+    j spirit_next_dir_assign_dir
+    spirit_next_dir_not_0c0d:
 
     addi $at, $zero, 0x0b0c
-    beq $t0, $at, frame_blinky_cant_change
+    beq $t0, $at, spirit_next_dir_cant_change
     addi $at, $zero, 0x0b0d
-    beq $t0, $at, frame_blinky_cant_change
+    beq $t0, $at, spirit_next_dir_cant_change
     addi $at, $zero, 0x0b0e
-    beq $t0, $at, frame_blinky_cant_change
+    beq $t0, $at, spirit_next_dir_cant_change
     addi $at, $zero, 0x0b0f
-    beq $t0, $at, frame_blinky_cant_change
+    beq $t0, $at, spirit_next_dir_cant_change
     addi $at, $zero, 0x170c
-    beq $t0, $at, frame_blinky_cant_change
+    beq $t0, $at, spirit_next_dir_cant_change
     addi $at, $zero, 0x170f
-    beq $t0, $at, frame_blinky_cant_change
-    j frame_blinky_can_change
+    beq $t0, $at, spirit_next_dir_cant_change
+    j spirit_next_dir_can_change
 
-    frame_blinky_cant_change:
+    spirit_next_dir_cant_change:
     srl $v0, $a0, 16
     addi $at, $zero, 0x1
-    beq $v0, $at, frame_blinky_assign_dir
+    beq $v0, $at, spirit_next_dir_assign_dir
     addi $at, $zero, 0x3
-    beq $v0, $at, frame_blinky_assign_dir
+    beq $v0, $at, spirit_next_dir_assign_dir
 
-    frame_blinky_can_change:
+    spirit_next_dir_can_change:
     andi $a1, $s0, 0x7FFF
     jal spirit_common_next_dir
 
-    frame_blinky_assign_dir:
+    spirit_next_dir_assign_dir:
 
     lw $ra, 0($sp)
     lw $t0, 4($sp)
