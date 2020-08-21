@@ -5,7 +5,7 @@ lui $k1, 0xE000     # seg
 #
 lui $fp, 0xB000     # btn
 la $gp, data
-addi $sp, $zero, 0x2000   # stack seg at 1024
+addi $sp, $zero, 0x4000    # stack seg at 16384
 
 # other const init
 addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
@@ -16,7 +16,7 @@ main:
     # pacman position and direction
 
     jal maze_init
-    lui $s0, 0x3   # direction 0 1 2 3 -> u r d l
+    lui $s0, 0x1   # direction 0 1 2 3 -> u r d l
     addi $s0, $s0, 0x170d   # position y:x
     lui $s1, 0x1
     addi $s1, $s1, 0x0e0c
@@ -24,6 +24,8 @@ main:
     addi $s2, $s2, 0x0e0d
     lui $s3, 0x0
     addi $s3, $s3, 0x0e0e
+    lui $s4, 0x3
+    addi $s4, $s4, 0x0e0f
 
     addi $a0, $zero, 0x170d
     addi $a1, $zero, 0x30
@@ -39,6 +41,10 @@ main:
 
     addi $a0, $zero, 0x0e0e
     addi $a1, $zero, 0x60
+    jal display_block
+
+    addi $a0, $zero, 0x0e0f
+    addi $a1, $zero, 0x72
     jal display_block
 
     lui $t4, 0x001F
@@ -72,7 +78,9 @@ frame:
     # inky
     andi $a0, $s3, 0x7FFF
     jal reset_block
-
+    # clyde
+    andi $a0, $s4, 0x7FFF
+    jal reset_block
 
     # pacman
     add $a0, $s6, $zero
@@ -264,11 +272,13 @@ frame:
 
     # spirit next
     # blinky
+    # target: pacman
     add $a0, $s1, $zero
     andi $a1, $s6, 0x7FFF
     jal spirit_next_dir
     beq $v1, $zero, blinky_common_move
 
+    # 2 penetrate position at the edge of the maze
     add $s1, $v0, $zero
     beq $v1, $t8, blinky_penetrate_1
     addi $a0, $zero, 0x0e00
@@ -282,6 +292,7 @@ frame:
     jal display_block
     j blinky_done
 
+    # common trace
     blinky_common_move:
     addi $at, $zero, 0x0
     beq $v0, $at, frame_blinky_up
@@ -337,8 +348,10 @@ frame:
     blinky_done:
 
     # pinky
+    # target: 4 blocks ahead pacman
     add $a0, $s2, $zero
     andi $a1, $s6, 0x7FFF
+    # get the direction and consider the delta
     srl $t0, $s6, 16
     addi $at, $zero, 0x0
     beq $t0, $at, pinky_target_up
@@ -447,6 +460,7 @@ frame:
     pinky_done:
 
     # inky
+    # target: mirror position of blinky with '2 blocks ahead pacman' as the center
     andi $a1, $s6, 0x7FFF
     srl $t0, $s6, 16
     addi $at, $zero, 0x0
@@ -488,8 +502,6 @@ frame:
     # a1 now 2 blocks ahead pacman, with >0 bound
     andi $a0, $s7, 0x7FFF
     jal lnky_target
-
-    sw $v0, 0($k1)
 
     add $a0, $s3, $zero
     add $a1, $v0, $zero
@@ -562,6 +574,87 @@ frame:
         addi $a1, $zero, 0x62
         jal display_block
     inky_done:
+
+    # clyde
+    add $a0, $s4, $zero
+    andi $a1, $s6, 0x7FFF
+    jal distance2_a0_a1
+
+    slti $at, $v0, 64
+    beq $at, $zero, clyde_chase
+    addi $a1, $zero, 0x1f00
+    clyde_chase:
+
+    jal spirit_next_dir
+    beq $v1, $zero, clyde_common_move
+
+    add $s4, $v0, $zero
+    beq $v1, $t8, clyde_penetrate_1
+    addi $a0, $zero, 0x0e00
+    addi $a1, $zero, 0x74
+    jal display_block
+    j clyde_done
+    
+    clyde_penetrate_1:
+    addi $a0, $zero, 0x0e1b
+    addi $a1, $zero, 0x72
+    jal display_block
+    j clyde_done
+
+    clyde_common_move:
+    addi $at, $zero, 0x0
+    beq $v0, $at, frame_clyde_up
+    addi $at, $zero, 0x1
+    beq $v0, $at, frame_clyde_right
+    addi $at, $zero, 0x2
+    beq $v0, $at, frame_clyde_down
+    addi $at, $zero, 0x3
+    beq $v0, $at, frame_clyde_left
+
+    frame_clyde_up:
+        andi $at, $s4, 0x7FFF
+        lui $s4, 0x0
+        add $s4, $s4, $at
+        addi $s4, $s4, -0x100
+
+        andi $a0, $s4, 0x7FFF
+        addi $a1, $zero, 0x70
+        jal display_block
+        j clyde_done
+
+    frame_clyde_right:
+        andi $at, $s4, 0x7FFF
+        lui $s4, 0x1
+        add $s4, $s4, $at
+        addi $s4, $s4, 1
+
+        andi $a0, $s4, 0x7FFF
+        addi $a1, $zero, 0x74
+        jal display_block
+        j clyde_done
+
+    frame_clyde_down:
+        andi $at, $s4, 0x7FFF
+        lui $s4, 0x2
+        add $s4, $s4, $at
+        addi $s4, $s4, 0x100
+
+        andi $a0, $s4, 0x7FFF
+        addi $a1, $zero, 0x76
+        jal display_block
+        j clyde_done
+
+    frame_clyde_left:
+        andi $at, $s4, 0x7FFF
+        lui $s4, 0x3
+        add $s4, $s4, $at
+        addi $s4, $s4, -1
+
+        andi $a0, $s4, 0x7FFF
+        addi $a1, $zero, 0x72
+        jal display_block
+    clyde_done:
+
 
     lw $ra, 0($sp)
     lw $t0, 4($sp)
