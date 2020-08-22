@@ -2,10 +2,10 @@
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
 # TOGGLE
-# lui $fp, 0xD000     # kbd
-lui $fp, 0xB000     # btn
+lui $fp, 0xD000     # kbd
+# lui $fp, 0xB000     # btn
 la $gp, data
-addi $sp, $zero, 0x4000    # stack seg at 16384
+addi $sp, $zero, 0x3000    # stack seg
 
 # other const init
 addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
@@ -85,26 +85,38 @@ frame:
     # pacman
     add $a0, $s6, $zero
     add $s6, $s0, $zero
-    # TOGGLE
-    # 
     lui $at, 0x3
     addi $at, $at, 0x0E00
     beq $s0, $at, frame_penetrate_left
     lui $at, 0x1
     addi $at, $at, 0x0E1B
     beq $s0, $at, frame_penetrate_right
-    andi $a0, $a0, 0xF
+    
+    # TOGGLE
     addi $at, $zero, 0x0
     beq $a0, $at, frame_pacman_not_change
-    addi $at, $zero, 0x5
+    addi $at, $zero, 0x1d
     beq $a0, $at, frame_kbd_up
-    addi $at, $zero, 0x8
+    addi $at, $zero, 0x1c
     beq $a0, $at, frame_kbd_left
-    addi $at, $zero, 0xA
+    addi $at, $zero, 0x23
     beq $a0, $at, frame_kbd_right
-    addi $at, $zero, 0xD
+    addi $at, $zero, 0x1b
     beq $a0, $at, frame_kbd_down
     j frame_pacman_not_change
+
+    # andi $a0, $a0, 0xF
+    # addi $at, $zero, 0x0
+    # beq $a0, $at, frame_pacman_not_change
+    # addi $at, $zero, 0x5
+    # beq $a0, $at, frame_kbd_up
+    # addi $at, $zero, 0x8
+    # beq $a0, $at, frame_kbd_left
+    # addi $at, $zero, 0xA
+    # beq $a0, $at, frame_kbd_right
+    # addi $at, $zero, 0xD
+    # beq $a0, $at, frame_kbd_down
+    # j frame_pacman_not_change
 
     frame_kbd_up:
         andi $a0, $s0, 0x7FFF
@@ -1101,12 +1113,6 @@ reset_block:
     andi $a1, $t1, 0xFF
     jal display_block
 
-    jal check_bean
-    beq $v0, $zero, reset_block_no_bean
-    addi $a1, $zero, 0x80
-    jal display_block
-    reset_block_no_bean:
-
     lw $ra, 0($sp)
     lw $a0, 4($sp)
     lw $a1, 8($sp)
@@ -1120,51 +1126,7 @@ reset_block:
     addi $sp, $sp,40
     jr $ra
 
-# function: given the pos a0 (9:8 y, 1:0 x), return whether there is a bean v0 (0x1: yes, 0x0: no)
-# the bean 
-check_bean:
-    addi $sp, $sp, -12
-    sw $t1, 0($sp)
-    sw $t2, 4($sp)
-    sw $t3, 8($sp)
-    add $at, $a0, $zero
-    andi $t2, $at, 0x00FF    # x
-    srl $at, $at, 8
-    andi $t3, $at, 0x00FF    # y
-    
-    sll $at, $t3, 3
-    sub $t3, $at, $t3   # y *= 7
-    srl $at, $t2, 2     # x /= 4    t2 is still x
-    add $t3, $at, $t3   # index of word
-    sll $t3, $t3 ,2     # addr
-    add $t3, $t3, $gp   # add maze addr start
-    addi $t3, $t3, 0x0E2C   # skip maze, pics
-    lw  $t1, 0($t3)
 
-    andi $t2, $t2, 0x3  # x %= 4
-    slti $at, $t2, 1    # x = 0
-    beq $at, $t8, check_bean_shift_3
-    slti $at, $t2, 2    # x = 1
-    beq $at, $t8, check_bean_shift_2
-    slti $at, $t2, 3    # x = 2
-    beq $at, $t8, check_bean_shift_1
-    j check_bean_shift_end
-    check_bean_shift_3:
-    srl $t1, $t1, 24
-    j check_bean_shift_end
-    check_bean_shift_2:
-    srl $t1, $t1, 16
-    j check_bean_shift_end
-    check_bean_shift_1:
-    srl $t1, $t1, 8
-    check_bean_shift_end:
-    andi $v0, $t1, 0x3
-
-    lw $t1, 0($sp)
-    lw $t2, 4($sp)
-    lw $t3, 8($sp)
-    addi $sp, $sp, 12
-    jr $ra
 
 # function: $a0 times 640 (for emulator)
 a0_times_640:
@@ -1207,15 +1169,15 @@ display_block:
     
     add $a0, $t3, $zero
     # TOGGLE
-    # jal a0_times_420
-    jal a0_times_640
+    jal a0_times_420
+    # jal a0_times_640
     add $a0, $a0, $t2
     jal a0_times_15
     # TOGGLE
-    # sll $a0, $a0, 2         #  pixel addr
-    # addi $t2, $a0, 56       # 14 * 4 addr of the ending pixel
-    sll $a0, $a0, 1         #  pixel addr
-    addi $t2, $a0, 28       # 14 * 2 addr of the ending pixel
+    sll $a0, $a0, 2         #  pixel addr
+    addi $t2, $a0, 56       # 14 * 4 addr of the ending pixel
+    # sll $a0, $a0, 1         #  pixel addr
+    # addi $t2, $a0, 28       # 14 * 2 addr of the ending pixel
     add $t2, $t2, $k0
 
     andi $at, $a1, 0xF  # 0xF door
@@ -1237,8 +1199,6 @@ display_block:
     beq $at, $t8, inky_type
     slti $at, $a1, 0x80
     beq $at, $t8, clyde_type
-    slti $at, $a1, 0x90
-    beq $at, $t8, bean_type
     sw $k1, 0($k1)  # error type
     jr $ra  # casue stack point error to help debug
 
@@ -1264,25 +1224,25 @@ display_block:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, pink_door_type_loop_0
             # TOGGLE
-            # lui $at, 0x0fbf
-            addi $at, $zero, 0x0fbf
+            lui $at, 0x0fbf
+            # addi $at, $zero, 0x0fbf
             j pink_door_type_loop_0_end
             pink_door_type_loop_0:
-            # lui $at, 0x0101
-            addi $at, $zero, 0x0101
+            lui $at, 0x0101
+            # addi $at, $zero, 0x0101
             beq $t1, $zero, pink_door_type_loop_0_end   # black
-            # lui $at, 0x0111
-            addi $at, $zero, 0x0111
+            lui $at, 0x0111
+            # addi $at, $zero, 0x0111
             pink_door_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pink_door_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pink_door_type_loop
@@ -1304,22 +1264,22 @@ display_block:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, black_type_loop_0
             # TOGGLE
-            # lui $at, 0x033d
-            addi $at, $zero, 0x033d
+            lui $at, 0x033d
+            # addi $at, $zero, 0x033d
             j black_type_loop_0_end
             black_type_loop_0:
-            # lui $at, 0x0101
-            addi $at, $zero, 0x0101
+            lui $at, 0x0101
+            # addi $at, $zero, 0x0101
             black_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, black_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, black_type_loop
@@ -1341,22 +1301,22 @@ display_block:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, gray_type_special_loop_0
             # TOGGLE
-            # lui $at, 0x033d
-            addi $at, $zero, 0x033d
+            lui $at, 0x033d
+            # addi $at, $zero, 0x033d
             j gray_type_special_loop_0_end
             gray_type_special_loop_0:
-            # lui $at, 0x0111
-            addi $at, $zero, 0x0111
+            lui $at, 0x0111
+            # addi $at, $zero, 0x0111
             gray_type_special_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_special_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_special_loop
@@ -1379,22 +1339,22 @@ display_block:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, gray_type_common_loop_0
             # TOGGLE
-            # lui $at, 0x033d
-            addi $at, $zero, 0x033d
+            lui $at, 0x033d
+            # addi $at, $zero, 0x033d
             j gray_type_common_loop_0_end
             gray_type_common_loop_0:
-            # lui $at, 0x0111
-            addi $at, $zero, 0x0111
+            lui $at, 0x0111
+            # addi $at, $zero, 0x0111
             gray_type_common_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_common_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, gray_type_common_loop
@@ -1417,22 +1377,22 @@ display_block:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, pacman_type_loop_0
             # TOGGLE
-            # lui $at, 0x0fe0
-            addi $at, $zero, 0x0fe0
+            lui $at, 0x0fe0
+            # addi $at, $zero, 0x0fe0
             j pacman_type_loop_0_end
             pacman_type_loop_0:
-            # lui $at, 0x0111
-            addi $at, $zero, 0x0111
+            lui $at, 0x0111
+            # addi $at, $zero, 0x0111
             pacman_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pacman_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pacman_type_loop
@@ -1463,34 +1423,34 @@ display_block:
 
             blinky_type_loop_0:
             # TOGGLE
-            # lui $at, 0x0000
-            addi $at, $zero, 0x0000
+            lui $at, 0x0000
+            # addi $at, $zero, 0x0000
             j blinky_type_loop_0_end
 
             blinky_type_loop_1:
-            # lui $at, 0x0f31
-            addi $at, $zero, 0x0f31
+            lui $at, 0x0f31
+            # addi $at, $zero, 0x0f31
             j blinky_type_loop_0_end
 
             blinky_type_loop_2:
-            # lui $at, 0x0fff
-            addi $at, $zero, 0x0fff
+            lui $at, 0x0fff
+            # addi $at, $zero, 0x0fff
             j blinky_type_loop_0_end
 
             blinky_type_loop_3:
-            # lui $at, 0x0238
-            addi $at, $zero, 0x0238
+            lui $at, 0x0238
+            # addi $at, $zero, 0x0238
 
             blinky_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, blinky_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, blinky_type_loop
@@ -1521,34 +1481,34 @@ display_block:
 
             pinky_type_loop_0:
             # TOGGLE
-            # lui $at, 0x0000
-            addi $at, $zero, 0x0000
+            lui $at, 0x0000
+            # addi $at, $zero, 0x0000
             j pinky_type_loop_0_end
 
             pinky_type_loop_1:
-            # lui $at, 0x0fcd
-            addi $at, $zero, 0x0fcd
+            lui $at, 0x0fcd
+            # addi $at, $zero, 0x0fcd
             j pinky_type_loop_0_end
 
             pinky_type_loop_2:
-            # lui $at, 0x0fff
-            addi $at, $zero, 0x0fff
+            lui $at, 0x0fff
+            # addi $at, $zero, 0x0fff
             j pinky_type_loop_0_end
 
             pinky_type_loop_3:
-            # lui $at, 0x0238
-            addi $at, $zero, 0x0238
+            lui $at, 0x0238
+            # addi $at, $zero, 0x0238
 
             pinky_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pinky_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, pinky_type_loop
@@ -1579,34 +1539,34 @@ display_block:
 
             inky_type_loop_0:
             # TOGGLE
-            # lui $at, 0x0000
-            addi $at, $zero, 0x0000
+            lui $at, 0x0000
+            # addi $at, $zero, 0x0000
             j inky_type_loop_0_end
 
             inky_type_loop_1:
-            # lui $at, 0x04dc
-            addi $at, $zero, 0x04dc
+            lui $at, 0x04dc
+            # addi $at, $zero, 0x04dc
             j inky_type_loop_0_end
 
             inky_type_loop_2:
-            # lui $at, 0x0fff
-            addi $at, $zero, 0x0fff
+            lui $at, 0x0fff
+            # addi $at, $zero, 0x0fff
             j inky_type_loop_0_end
 
             inky_type_loop_3:
-            # lui $at, 0x0238
-            addi $at, $zero, 0x0238
+            lui $at, 0x0238
+            # addi $at, $zero, 0x0238
 
             inky_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, inky_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, inky_type_loop
@@ -1637,49 +1597,39 @@ display_block:
 
             clyde_type_loop_0:
             # TOGGLE
-            # lui $at, 0x0000
-            addi $at, $zero, 0x0000
+            lui $at, 0x0000
+            # addi $at, $zero, 0x0000
             j clyde_type_loop_0_end
 
             clyde_type_loop_1:
-            # lui $at, 0x0fb5
-            addi $at, $zero, 0x0fb5
+            lui $at, 0x0fb5
+            # addi $at, $zero, 0x0fb5
             j clyde_type_loop_0_end
 
             clyde_type_loop_2:
-            # lui $at, 0x0fff
-            addi $at, $zero, 0x0fff
+            lui $at, 0x0fff
+            # addi $at, $zero, 0x0fff
             j clyde_type_loop_0_end
 
             clyde_type_loop_3:
-            # lui $at, 0x0238
-            addi $at, $zero, 0x0238
+            lui $at, 0x0238
+            # addi $at, $zero, 0x0238
 
             clyde_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
+            sw $at, 0($t2)
+            # sh $at, 0($t2)
+            addi $t2, $t2, -4
+            # addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, clyde_type_loop_inner
             addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
+            addi $t2, $t2, 1740     # (420 + 15) * 4
+            # addi $t2, $t2, 1310   # for emulator
             addi $t4, $zero, 15
             addi $t5, $t5, -1
             bne $t5, $0, clyde_type_loop
         j display_block_end
 
-    bean_type:
-        # TOGGLE
-        addi $at, $zero, 0x0fb9
-        addi $t2, $t2, 10224   # (640*8 - 8)*2 go to first pixel directly
-        sh $at, 0($t2)
-        sh $at, 2($t2)
-        addi $t2, $t2, 1280  # 1 line
-        sh $at, 0($t2)
-        sh $at, 2($t2)
-        j display_block_end
 
     display_block_end:
         lw $ra, 0($sp)
