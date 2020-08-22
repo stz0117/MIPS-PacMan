@@ -5,329 +5,16 @@ lui $k1, 0xE000     # seg
 # lui $fp, 0xD000     # kbd
 lui $fp, 0xB000     # btn
 la $gp, data
-addi $sp, $zero, 0x4000    # stack seg at 16384
+addi $sp, $zero, 0x3000    # stack seg
 
 # other const init
 addi $t8, $zero, 0x1  # const 1, used in beq to compare with flag
 lui $t9, 0x1    # higher 1
 
 main:
-    addi $a3, $zero, 1
-    jal hard_reset
-    lui $t4, 0x00F
-    read_in_loop:
-        lw $a0, 0($fp)
-        addi $t4, $t4, -1
-        bne $t4, $zero, read_in_loop
-        jal state
-        lui $t4, 0x00F
-        j read_in_loop
-
-dead:
-    j dead
-
-# function: overall state control flow
-# state stored in a3
-state:
-    addi $sp, $sp, -8
-    sw $ra, 0($sp)
-    sw $t4, 4($sp)
-
-    beq $a3, $zero, state_frame
-    addi $at, $zero, 1
-    beq $a3, $at, state_start
-    addi $at, $zero, 2
-    beq $a3, $at, state_win
-    addi $at, $zero, 3
-    beq $a3, $at, state_died
-    addi $at, $zero, 4
-    beq $a3, $at, state_lose
-    addi $at, $zero, 5
-    beq $a3, $at, state_pause
-
-    state_frame:
-        andi $t0, $a0, 0xF
-        addi $at, $zero, 6
-        bne $t0, $at, state_frame_not_pause   # pause
-        addi $a3, $zero, 5         # pause
-        j state_pause
-
-        state_frame_not_pause:
-        jal frame
-
-        addi $at, $zero, 1
-        bne $v0, $at, state_frame_not_died
-        addi $a3, $zero, 3         # died
-        j state_died
-
-        state_frame_not_died:
-        addi $at, $zero, 2
-        bne $v0, $at, state_frame_not_lose
-        addi $a3, $zero, 4         # lose
-        j state_lose
-
-        state_frame_not_lose:
-        addi $at, $zero, 0x0020
-        andi $t0, $s5, 0x7FFF
-        bne $t0, $at, state_frame_not_win
-        addi $a3, $zero, 2         # win
-        j state_win
-
-        state_frame_not_win:
-        j state_end
-
-    state_start:
-        # TOGGLE
-        andi $t0, $a0, 0xF
-        addi $at, $zero, 0x9
-        bne $t0, $at, state_start_not_frame
-        add $a3, $zero, $zero   # frame
-        addi $a0, $zero, 0x110b
-        jal reset_block
-        addi $a0, $zero, 0x110c
-        jal reset_block
-        addi $a0, $zero, 0x110d
-        jal reset_block
-        addi $a0, $zero, 0x110e
-        jal reset_block
-        addi $a0, $zero, 0x110f
-        jal reset_block
-        addi $a0, $zero, 0x1110
-        jal reset_block
-        addi $a3, $zero, 0         # frame
-        j state_frame
-        state_start_not_frame:
-        addi $a0, $zero, 0x110b
-        addi $a1, $zero, 0x90
-        jal display_block
-        addi $a0, $zero, 0x110c
-        addi $a1, $zero, 0x91
-        jal display_block
-        addi $a0, $zero, 0x110d
-        addi $a1, $zero, 0x92
-        jal display_block
-        addi $a0, $zero, 0x110e
-        addi $a1, $zero, 0x93
-        jal display_block
-        addi $a0, $zero, 0x110f
-        addi $a1, $zero, 0x94
-        jal display_block
-        addi $a0, $zero, 0x1110
-        addi $a1, $zero, 0x95
-        jal display_block
-        j state_end
-
-    state_win:
-    andi $t0, $a0, 0xF
-    addi $at, $zero, 0xE
-    bne $t0, $at, state_win_not_start
-    jal hard_reset
-    addi $a3, $zero, 1         # start
-    j state_start
-    state_win_not_start:
-        addi $a0, $zero, 0x110a
-        addi $a1, $zero, 0xb0
-        jal display_block
-        addi $a0, $zero, 0x110b
-        addi $a1, $zero, 0xb1
-        jal display_block
-        addi $a0, $zero, 0x110c
-        addi $a1, $zero, 0xb2
-        jal display_block
-        addi $a0, $zero, 0x110d
-        addi $a1, $zero, 0xb3
-        jal display_block
-        addi $a0, $zero, 0x110e
-        addi $a1, $zero, 0xb4
-        jal display_block
-        addi $a0, $zero, 0x110f
-        addi $a1, $zero, 0xb5
-        jal display_block
-        addi $a0, $zero, 0x1110
-        addi $a1, $zero, 0xb6
-        jal display_block
-        addi $a0, $zero, 0x1111
-        addi $a1, $zero, 0xb7
-        jal display_block
-        andi $a0, $s0, 0x7FFF
-        addi $a1, $zero, 0x30
-        jal display_block
-    j state_end
-
-    state_died:
-    andi $t0, $a0, 0xF
-    addi $at, $zero, 0xE
-    bne $t0, $at, state_died_not_start
-    jal reset
-    addi $a3, $zero, 1         # start
-    j state_start
-    state_died_not_start:
-        addi $a0, $zero, 0x1109
-        addi $a1, $zero, 0x9c
-        jal display_block
-        addi $a0, $zero, 0x110a
-        addi $a1, $zero, 0x9d
-        jal display_block
-        addi $a0, $zero, 0x110b
-        addi $a1, $zero, 0x9e
-        jal display_block
-        addi $a0, $zero, 0x110c
-        addi $a1, $zero, 0x9f
-        jal display_block
-        addi $a0, $zero, 0x110d
-        addi $a1, $zero, 0xa0
-        jal display_block
-        addi $a0, $zero, 0x110e
-        addi $a1, $zero, 0xa1
-        jal display_block
-        addi $a0, $zero, 0x110f
-        addi $a1, $zero, 0xa2
-        jal display_block
-        addi $a0, $zero, 0x1110
-        addi $a1, $zero, 0xa3
-        jal display_block
-        addi $a0, $zero, 0x1111
-        addi $a1, $zero, 0xa4
-        jal display_block
-        addi $a0, $zero, 0x1112
-        addi $a1, $zero, 0xa5
-        jal display_block
-        andi $a0, $s0, 0x7FFF
-        addi $a1, $zero, 0x39
-        jal display_block
-    j state_end
-
-    state_lose:
-    andi $t0, $a0, 0xF
-    addi $at, $zero, 0xE
-    bne $t0, $at, state_lose_not_start
-    jal hard_reset
-    addi $a3, $zero, 1         # start
-    j state_start
-    state_lose_not_start:
-        addi $a0, $zero, 0x1109
-        addi $a1, $zero, 0xa6
-        jal display_block
-        addi $a0, $zero, 0x110a
-        addi $a1, $zero, 0xa7
-        jal display_block
-        addi $a0, $zero, 0x110b
-        addi $a1, $zero, 0xa8
-        jal display_block
-        addi $a0, $zero, 0x110c
-        addi $a1, $zero, 0xa9
-        jal display_block
-        addi $a0, $zero, 0x110d
-        addi $a1, $zero, 0xaa
-        jal display_block
-        addi $a0, $zero, 0x110e
-        addi $a1, $zero, 0xab
-        jal display_block
-        addi $a0, $zero, 0x110f
-        addi $a1, $zero, 0xac
-        jal display_block
-        addi $a0, $zero, 0x1110
-        addi $a1, $zero, 0xad
-        jal display_block
-        addi $a0, $zero, 0x1111
-        addi $a1, $zero, 0xae
-        jal display_block
-        addi $a0, $zero, 0x1112
-        addi $a1, $zero, 0xaf
-        jal display_block
-        andi $a0, $s0, 0x7FFF
-        addi $a1, $zero, 0x39
-        jal display_block
-
-    j state_end
-
-    state_pause:
-        andi $t0, $a0, 0xF
-        addi $at, $zero, 9
-        bne $t0, $at, state_pause_not_frame
-        addi $a0, $zero, 0x110b
-        jal reset_block
-        addi $a0, $zero, 0x110c
-        jal reset_block
-        addi $a0, $zero, 0x110d
-        jal reset_block
-        addi $a0, $zero, 0x110e
-        jal reset_block
-        addi $a0, $zero, 0x110f
-        jal reset_block
-        addi $a0, $zero, 0x1110
-        jal reset_block
-        addi $a3, $zero, 0         # frame
-        j state_frame
-
-        state_pause_not_frame:
-        addi $a0, $zero, 0x110b
-        addi $a1, $zero, 0x96
-        jal display_block
-        addi $a0, $zero, 0x110c
-        addi $a1, $zero, 0x97
-        jal display_block
-        addi $a0, $zero, 0x110d
-        addi $a1, $zero, 0x98
-        jal display_block
-        addi $a0, $zero, 0x110e
-        addi $a1, $zero, 0x99
-        jal display_block
-        addi $a0, $zero, 0x110f
-        addi $a1, $zero, 0x9A
-        jal display_block
-        addi $a0, $zero, 0x1110
-        addi $a1, $zero, 0x9B
-        jal display_block
-        j state_end
-
-    state_end:
-        lw $ra, 0($sp)
-        lw $t4, 4($sp)
-        addi $sp, $sp, 8
-        jr $ra
-
-# function: reset the life and beans
-hard_reset:
-    addi $sp, $sp, -16
-    sw $ra, 0($sp)
-    sw $a0, 4($sp)
-    sw $a1, 8($sp)
-    sw $t0, 12($sp)
-
-    addi $a0, $gp, 0xE2C
-    addi $a1, $gp, 0x11AC
-    addi $t0, $zero, 224
-    hard_reset_bean_loop:
-        lw $at, 0($a1)
-        sw $at, 0($a0)
-        addi $a1, $a1, 4
-        addi $a0, $a0, 4
-        addi $t0, $t0, -1
-        bne $t0, $zero, hard_reset_bean_loop
-
-    jal reset
-    addi $a2, $zero, 3
-    addi $s5, $zero, 0  # todo
-
-    lw $ra, 0($sp)
-    lw $a0, 4($sp)
-    lw $a1, 8($sp)
-    lw $t0, 12($sp)
-    addi $sp, $sp, 16
-    jr $ra
-
-
-# function: reset the pos and dir of spirits, display the maze
-# don't reset the bean
-reset:
-    addi $sp, $sp, -12
-    sw $ra, 0($sp)
-    sw $a0, 4($sp)
-    sw $a1, 8($sp)
-
     # game const init
     # pacman position and direction
+
     jal maze_init
     lui $s0, 0x1   # direction 0 1 2 3 -> u r d l
     addi $s0, $s0, 0x170d   # position y:x
@@ -359,22 +46,24 @@ reset:
     addi $a0, $zero, 0x0e0f
     addi $a1, $zero, 0x72
     jal display_block
-    
-    lw $ra, 0($sp)
-    lw $a0, 4($sp)
-    lw $a1, 8($sp)
-    addi $sp, $sp, 12
-    jr $ra
+
+    lui $t4, 0x001F
+    read_in_loop:
+        lw $a0, 0($fp)
+        sw $a0, 0($k1)
+        addi $t4, $t4, -1
+        bne $t4, $zero, read_in_loop
+        jal frame
+        lui $t4, 0x001F
+        j read_in_loop
 
 # function: displat next frame according to current state, input and maze
 frame:
-    addi $sp, $sp, -24
+    addi $sp, $sp, -16
     sw $ra, 0($sp)
     sw $t0, 4($sp)
     sw $t1, 8($sp)
-    sw $t2, 12($sp)
-    sw $t3, 16($sp)
-    sw $s6, 20($sp)
+    sw $s6, 12($sp)
 
     add $s6, $a0, $zero
     add $s7, $s1, $zero  # inky uses blinky's position
@@ -396,14 +85,28 @@ frame:
     # pacman
     add $a0, $s6, $zero
     add $s6, $s0, $zero
-    # TOGGLE
-    # 
     lui $at, 0x3
     addi $at, $at, 0x0E00
     beq $s0, $at, frame_penetrate_left
     lui $at, 0x1
     addi $at, $at, 0x0E1B
     beq $s0, $at, frame_penetrate_right
+    
+    # TOGGLE
+    # addi $at, $zero, 0x0
+    # beq $a0, $at, frame_pacman_not_change
+    # addi $at, $zero, 0x1d
+    # beq $a0, $at, frame_kbd_up
+    # addi $at, $zero, 0x1c
+    # beq $a0, $at, frame_kbd_left
+    # addi $at, $zero, 0x23
+    # beq $a0, $at, frame_kbd_right
+    # addi $at, $zero, 0x1b
+    # beq $a0, $at, frame_kbd_down
+    # j frame_pacman_not_change
+
+    
+
     andi $a0, $a0, 0xF
     addi $at, $zero, 0x0
     beq $a0, $at, frame_pacman_not_change
@@ -423,7 +126,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, 0x0100
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, -0x0100
         addi $a1, $zero, 0x31
@@ -440,7 +142,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, -1
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, 1
         addi $a1, $zero, 0x35
@@ -457,7 +158,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, -0x0100
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, 0x0100
         addi $a1, $zero, 0x37
@@ -475,7 +175,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, 1
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, -1
         addi $a1, $zero, 0x33
@@ -504,7 +203,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, 1
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, -1
         addi $a1, $zero, 0x33
@@ -521,7 +219,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, 0x0100
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, -0x0100
         addi $a1, $zero, 0x31
@@ -538,7 +235,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, -0x0100
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, 0x0100
         addi $a1, $zero, 0x37
@@ -555,7 +251,6 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, -1
-        jal eat_bean
         jal reset_block
         addi $a0, $a0, 1
         addi $a1, $zero, 0x35
@@ -588,7 +283,6 @@ frame:
         j frame_end
 
     frame_end:
-        sw $s5, 0($k1)
 
     # spirit next
     # blinky
@@ -976,200 +670,11 @@ frame:
     clyde_done:
 
 
-    # return dead info
-    add $v0, $zero, $zero
-    frame_check_b:
-    srl $t2, $s0, 16    # dir pac
-    srl $t3, $s1, 16    # dir b
-    andi $t0, $s0, 0x7FFF
-    andi $t1, $s1, 0x7FFF
-    beq $t0, $t1, frame_died
-
-    addi $t0, $t0, -0x0100
-    bne $t0, $t1, frame_check_b_down
-    addi $at, $zero, 2
-    bne $t2, $at, frame_check_b_down
-    addi $at, $zero, 0
-    bne $t3, $at, frame_check_b_down
-    j frame_died
-
-    frame_check_b_down:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 0x0100
-    bne $t0, $t1, frame_check_b_right
-    addi $at, $zero, 0
-    bne $t2, $at, frame_check_b_right
-    addi $at, $zero, 2
-    bne $t3, $at, frame_check_b_right
-    j frame_died
-
-    frame_check_b_right:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 1
-    bne $t0, $t1, frame_check_b_left
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_b_left
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_b_left
-    j frame_died
-
-    frame_check_b_left:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, -1
-    bne $t0, $t1, frame_check_p
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_p
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_p
-    j frame_died
-
-    frame_check_p:
-    srl $t3, $s2, 16    # dir p
-    andi $t0, $s0, 0x7FFF
-    andi $t1, $s2, 0x7FFF
-    beq $t0, $t1, frame_died
-
-    addi $t0, $t0, -0x0100
-    bne $t0, $t1, frame_check_p_down
-    addi $at, $zero, 2
-    bne $t2, $at, frame_check_p_down
-    addi $at, $zero, 0
-    bne $t3, $at, frame_check_p_down
-    j frame_died
-
-    frame_check_p_down:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 0x0100
-    bne $t0, $t1, frame_check_p_right
-    addi $at, $zero, 0
-    bne $t2, $at, frame_check_p_right
-    addi $at, $zero, 2
-    bne $t3, $at, frame_check_p_right
-    j frame_died
-
-    frame_check_p_right:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 1
-    bne $t0, $t1, frame_check_p_left
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_p_left
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_p_left
-    j frame_died
-
-    frame_check_p_left:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, -1
-    bne $t0, $t1, frame_check_i
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_i
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_i
-    j frame_died
-
-    frame_check_i:
-    srl $t3, $s3, 16    # dir i
-    andi $t0, $s0, 0x7FFF
-    andi $t1, $s3, 0x7FFF
-    beq $t0, $t1, frame_died
-
-    addi $t0, $t0, -0x0100
-    bne $t0, $t1, frame_check_i_down
-    addi $at, $zero, 2
-    bne $t2, $at, frame_check_i_down
-    addi $at, $zero, 0
-    bne $t3, $at, frame_check_i_down
-    j frame_died
-
-    frame_check_i_down:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 0x0100
-    bne $t0, $t1, frame_check_i_right
-    addi $at, $zero, 0
-    bne $t2, $at, frame_check_i_right
-    addi $at, $zero, 2
-    bne $t3, $at, frame_check_i_right
-    j frame_died
-
-    frame_check_i_right:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 1
-    bne $t0, $t1, frame_check_i_left
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_i_left
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_i_left
-    j frame_died
-
-    frame_check_i_left:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, -1
-    bne $t0, $t1, frame_check_c
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_c
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_c
-    j frame_died
-
-    frame_check_c:
-    srl $t3, $s4, 16    # dir c
-    andi $t0, $s0, 0x7FFF
-    andi $t1, $s4, 0x7FFF
-    beq $t0, $t1, frame_died
-
-    addi $t0, $t0, -0x0100
-    bne $t0, $t1, frame_check_c_down
-    addi $at, $zero, 2
-    bne $t2, $at, frame_check_c_down
-    addi $at, $zero, 0
-    bne $t3, $at, frame_check_c_down
-    j frame_died
-
-    frame_check_c_down:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 0x0100
-    bne $t0, $t1, frame_check_c_right
-    addi $at, $zero, 0
-    bne $t2, $at, frame_check_c_right
-    addi $at, $zero, 2
-    bne $t3, $at, frame_check_c_right
-    j frame_died
-
-    frame_check_c_right:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, 1
-    bne $t0, $t1, frame_check_c_left
-    addi $at, $zero, 3
-    bne $t2, $at, frame_check_c_left
-    addi $at, $zero, 1
-    bne $t3, $at, frame_check_c_left
-    j frame_died
-
-    frame_check_c_left:
-    andi $t0, $s0, 0x7FFF
-    addi $t0, $t0, -1
-    bne $t0, $t1, frame_died_not_lose
-    addi $at, $zero, 3
-    bne $t2, $at, frame_died_not_lose
-    addi $at, $zero, 1
-    bne $t3, $at, frame_died_not_lose
-    j frame_died
-
-    frame_died:
-        addi $v0, $zero, 1
-        addi $a2, $a2, -1
-        bne $a2, $zero, frame_died_not_lose
-        addi $v0, $zero, 2
-    
-    frame_died_not_lose:
-
     lw $ra, 0($sp)
     lw $t0, 4($sp)
     lw $t1, 8($sp)
-    lw $t2, 12($sp)
-    lw $t3, 16($sp)
-    lw $s6, 20($sp)
-    addi $sp, $sp, 24
+    lw $s6, 12($sp)
+    addi $sp, $sp, 16
     jr $ra
 
 # function: return the target of lnky given blinky pos a0, center pos a1
@@ -1539,7 +1044,7 @@ maze_init:
     add $t5, $zero, $zero
     addi $t6, $zero, 28
     addi $t7, $zero, 32
-    addi $a0, $zero, 0
+    addi $a0, $a0, 0
     maze_loop:
         jal reset_block
         addi $a0, $a0, 1
@@ -1610,12 +1115,6 @@ reset_block:
     andi $a1, $t1, 0xFF
     jal display_block
 
-    jal check_bean
-    beq $v0, $zero, reset_block_no_bean
-    addi $a1, $zero, 0x80
-    jal display_block
-    reset_block_no_bean:
-
     lw $ra, 0($sp)
     lw $a0, 4($sp)
     lw $a1, 8($sp)
@@ -1629,129 +1128,7 @@ reset_block:
     addi $sp, $sp,40
     jr $ra
 
-# function: given the pos a0 (9:8 y, 1:0 x), return whether there is a bean in v0 (0x1: yes, 0x0: no)
-check_bean:
-    addi $sp, $sp, -12
-    sw $t1, 0($sp)
-    sw $t2, 4($sp)
-    sw $t3, 8($sp)
-    add $at, $a0, $zero
-    andi $t2, $at, 0x00FF    # x
-    srl $at, $at, 8
-    andi $t3, $at, 0x00FF    # y
-    
-    sll $at, $t3, 3
-    sub $t3, $at, $t3   # y *= 7
-    srl $at, $t2, 2     # x /= 4    t2 is still x
-    add $t3, $at, $t3   # index of word
-    sll $t3, $t3 ,2     # addr
-    add $t3, $t3, $gp   # add maze addr start
-    addi $t3, $t3, 0x0E2C   # skip maze, pics
-    lw  $t1, 0($t3)
 
-    andi $t2, $t2, 0x3  # x %= 4
-    slti $at, $t2, 1    # x = 0
-    beq $at, $t8, check_bean_shift_3
-    slti $at, $t2, 2    # x = 1
-    beq $at, $t8, check_bean_shift_2
-    slti $at, $t2, 3    # x = 2
-    beq $at, $t8, check_bean_shift_1
-    j check_bean_shift_end
-    check_bean_shift_3:
-    srl $t1, $t1, 24
-    j check_bean_shift_end
-    check_bean_shift_2:
-    srl $t1, $t1, 16
-    j check_bean_shift_end
-    check_bean_shift_1:
-    srl $t1, $t1, 8
-    check_bean_shift_end:
-    andi $v0, $t1, 0x3
-
-    lw $t1, 0($sp)
-    lw $t2, 4($sp)
-    lw $t3, 8($sp)
-    addi $sp, $sp, 12
-    jr $ra
-
-# function: eat the bean at pos a0 (9:8 y, 1:0 x)
-eat_bean:
-    addi $sp, $sp, -12
-    sw $t1, 0($sp)
-    sw $t2, 4($sp)
-    sw $t3, 8($sp)
-    add $at, $a0, $zero
-    andi $t2, $at, 0x00FF    # x
-    srl $at, $at, 8
-    andi $t3, $at, 0x00FF    # y
-    
-    sll $at, $t3, 3
-    sub $t3, $at, $t3   # y *= 7
-    srl $at, $t2, 2     # x /= 4    t2 is still x
-    add $t3, $at, $t3   # index of word
-    sll $t3, $t3 ,2     # addr
-    add $t3, $t3, $gp   # add maze addr start
-    addi $t3, $t3, 0x0E2C   # skip maze, pics
-    lw  $t1, 0($t3)
-
-    andi $t2, $t2, 0x3  # x %= 4
-    slti $at, $t2, 1    # x = 0
-    beq $at, $t8, eat_bean_3
-    slti $at, $t2, 2    # x = 1
-    beq $at, $t8, eat_bean_2
-    slti $at, $t2, 3    # x = 2
-    beq $at, $t8, eat_bean_1
-    j eat_bean_0
-
-    eat_bean_3:
-    srl $at, $t1, 24
-    beq $at, $zero, eat_bean_end
-
-    addi $s5, $s5, 1
-    lui $at, 0x000F
-    addi $at, $at, 0x0F0F
-    and $t1, $t1, $at
-    j eat_bean_end
-
-    eat_bean_2:
-    srl $at, $t1, 16
-    andi $at, $at, 0xF
-    beq $at, $zero, eat_bean_end
-
-    addi $s5, $s5, 1
-    lui $at, 0x0F00
-    addi $at, $at, 0x0F0F
-    and $t1, $t1, $at
-    j eat_bean_end
-
-    eat_bean_1:
-    srl $at, $t1, 8
-    andi $at, $at, 0xF
-    beq $at, $zero, eat_bean_end
-
-    addi $s5, $s5, 1
-    lui $at, 0x0F0F
-    addi $at, $at, 0x000F
-    and $t1, $t1, $at
-    j eat_bean_end
-
-    eat_bean_0:
-    andi $at, $t1, 0xFF
-    beq $at, $zero, eat_bean_end
-
-    addi $s5, $s5, 1
-    lui $at, 0x0F0F
-    addi $at, $at, 0x0F00
-    and $t1, $t1, $at
-
-    eat_bean_end:
-    sw $t1, 0($t3)
-
-    lw $t1, 0($sp)
-    lw $t2, 4($sp)
-    lw $t3, 8($sp)
-    addi $sp, $sp, 12
-    jr $ra
 
 # function: $a0 times 640 (for emulator)
 a0_times_640:
@@ -1778,7 +1155,7 @@ a0_times_15:
 
 # function: displat block a0 with type a1
 display_block:
-    addi $sp, $sp, -36
+    addi $sp, $sp, -32
     sw $ra, 0($sp)
     sw $a0, 4($sp)
     sw $a1, 8($sp)
@@ -1787,8 +1164,6 @@ display_block:
     sw $t3, 20($sp)
     sw $t4, 24($sp)
     sw $t5, 28($sp)
-    sw $t0, 32($sp)
-
 
     andi $t2, $a0, 0x00FF    # x
     srl $a0, $a0, 8
@@ -1807,11 +1182,9 @@ display_block:
     addi $t2, $a0, 28       # 14 * 2 addr of the ending pixel
     add $t2, $t2, $k0
 
-
-    addi $t1, $zero, 0x0F
-    beq $a1, $t1, pink_door_type
-    addi $t1, $zero, 0x2F
-    beq $a1, $t1, pink_door_type
+    andi $at, $a1, 0xF  # 0xF door
+    addi $t1, $zero, 0xF
+    beq $at, $t1, pink_door_type
     slti $at, $a1, 0x16
     beq $at, $t8, black_type
     slti $at, $a1, 0x1c
@@ -1828,9 +1201,8 @@ display_block:
     beq $at, $t8, inky_type
     slti $at, $a1, 0x80
     beq $at, $t8, clyde_type
-    slti $at, $a1, 0x90
-    beq $at, $t8, bean_type
-    j banner_type
+    sw $k1, 0($k1)  # error type
+    jr $ra  # casue stack point error to help debug
 
     pink_door_type:
         slti $at, $a1, 0x2F     # at = 1: black
@@ -2260,55 +1632,6 @@ display_block:
             bne $t5, $0, clyde_type_loop
         j display_block_end
 
-    bean_type:
-        # TOGGLE
-        addi $at, $zero, 0x0fb9
-        addi $t2, $t2, 10224   # (640*8 - 8)*2 go to first pixel directly
-        sh $at, 0($t2)
-        sh $at, 2($t2)
-        addi $t2, $t2, 1280  # 1 line
-        sh $at, 0($t2)
-        sh $at, 2($t2)
-        j display_block_end
-
-    banner_type:
-        addi $a1, $a1, -0x90
-        add $a0, $a1, $zero
-        jal a0_times_15
-        sll $a0, $a0, 2     #  * 4 to get addr
-        add $a0, $a0, $gp
-        addi $t3, $a0, 0x152C   # skip maze, block pic, pacman, beans, banner addr starts
-
-        addi $t4, $zero, 15
-        addi $t5, $zero, 15
-        banner_type_loop:
-            lw $t0, 0($t3)
-        banner_type_loop_inner:
-            andi $at, $t0, 0x3  # lowest 2 bits
-            beq $at, $zero, banner_type_loop_0
-            # TOGGLE
-            # lui $at, 0x0ff1
-            addi $at, $zero, 0x0ff1
-            j banner_type_loop_0_end
-            banner_type_loop_0:
-            # lui $at, 0x0111
-            addi $at, $zero, 0x0111
-            banner_type_loop_0_end:
-            # sw $at, 0($t2)
-            sh $at, 0($t2)
-            # addi $t2, $t2, -4
-            addi $t2, $t2, -2
-            srl $t0, $t0, 2
-            addi $t4, $t4, -1
-            bne $t4, $0, banner_type_loop_inner
-            addi $t3, $t3, 4
-            # addi $t2, $t2, 1740     # (420 + 15) * 4
-            addi $t2, $t2, 1310   # for emulator
-            addi $t4, $zero, 15
-            addi $t5, $t5, -1
-            bne $t5, $0, banner_type_loop
-        j display_block_end
-
 
     display_block_end:
         lw $ra, 0($sp)
@@ -2319,8 +1642,7 @@ display_block:
         lw $t3, 20($sp)
         lw $t4, 24($sp)
         lw $t5, 28($sp)
-        lw $t0, 32($sp)
-        addi $sp, $sp, 36
+        addi $sp, $sp, 32
         jr $ra
 
 data:

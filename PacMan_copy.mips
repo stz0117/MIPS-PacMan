@@ -2,8 +2,8 @@
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
 # TOGGLE
-lui $fp, 0xD000     # kbd
-# lui $fp, 0xB000     # btn
+# lui $fp, 0xD000     # kbd
+lui $fp, 0xB000     # btn
 la $gp, data
 addi $sp, $zero, 0x3000    # stack seg
 
