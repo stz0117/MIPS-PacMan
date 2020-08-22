@@ -112,6 +112,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, 0x0100
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, -0x0100
         addi $a1, $zero, 0x31
@@ -128,6 +129,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, -1
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, 1
         addi $a1, $zero, 0x35
@@ -144,6 +146,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, -0x0100
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, 0x0100
         addi $a1, $zero, 0x37
@@ -161,6 +164,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_pacman_not_change
         addi $a0, $a0, 1
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, -1
         addi $a1, $zero, 0x33
@@ -189,6 +193,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, 1
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, -1
         addi $a1, $zero, 0x33
@@ -205,6 +210,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, 0x0100
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, -0x0100
         addi $a1, $zero, 0x31
@@ -221,6 +227,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, -0x0100
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, 0x0100
         addi $a1, $zero, 0x37
@@ -237,6 +244,7 @@ frame:
         jal is_blocked
         bne $v0, $zero, frame_end
         addi $a0, $a0, -1
+        jal eat_bean
         jal reset_block
         addi $a0, $a0, 1
         addi $a1, $zero, 0x35
@@ -269,6 +277,7 @@ frame:
         j frame_end
 
     frame_end:
+        sw $s5, 0($k1)
 
     # spirit next
     # blinky
@@ -1120,8 +1129,7 @@ reset_block:
     addi $sp, $sp,40
     jr $ra
 
-# function: given the pos a0 (9:8 y, 1:0 x), return whether there is a bean v0 (0x1: yes, 0x0: no)
-# the bean 
+# function: given the pos a0 (9:8 y, 1:0 x), return whether there is a bean in v0 (0x1: yes, 0x0: no)
 check_bean:
     addi $sp, $sp, -12
     sw $t1, 0($sp)
@@ -1159,6 +1167,85 @@ check_bean:
     srl $t1, $t1, 8
     check_bean_shift_end:
     andi $v0, $t1, 0x3
+
+    lw $t1, 0($sp)
+    lw $t2, 4($sp)
+    lw $t3, 8($sp)
+    addi $sp, $sp, 12
+    jr $ra
+
+# function: eat the bean at pos a0 (9:8 y, 1:0 x)
+eat_bean:
+    addi $sp, $sp, -12
+    sw $t1, 0($sp)
+    sw $t2, 4($sp)
+    sw $t3, 8($sp)
+    add $at, $a0, $zero
+    andi $t2, $at, 0x00FF    # x
+    srl $at, $at, 8
+    andi $t3, $at, 0x00FF    # y
+    
+    sll $at, $t3, 3
+    sub $t3, $at, $t3   # y *= 7
+    srl $at, $t2, 2     # x /= 4    t2 is still x
+    add $t3, $at, $t3   # index of word
+    sll $t3, $t3 ,2     # addr
+    add $t3, $t3, $gp   # add maze addr start
+    addi $t3, $t3, 0x0E2C   # skip maze, pics
+    lw  $t1, 0($t3)
+
+    andi $t2, $t2, 0x3  # x %= 4
+    slti $at, $t2, 1    # x = 0
+    beq $at, $t8, eat_bean_3
+    slti $at, $t2, 2    # x = 1
+    beq $at, $t8, eat_bean_2
+    slti $at, $t2, 3    # x = 2
+    beq $at, $t8, eat_bean_1
+    j eat_bean_0
+
+    eat_bean_3:
+    srl $at, $t1, 24
+    beq $at, $zero, eat_bean_end
+
+    addi $s5, $s5, 1
+    lui $at, 0x000F
+    addi $at, $at, 0x0F0F
+    and $t1, $t1, $at
+    j eat_bean_end
+
+    eat_bean_2:
+    srl $at, $t1, 16
+    andi $at, $at, 0xF
+    beq $at, $zero, eat_bean_end
+
+    addi $s5, $s5, 1
+    lui $at, 0x0F00
+    addi $at, $at, 0x0F0F
+    and $t1, $t1, $at
+    j eat_bean_end
+
+    eat_bean_1:
+    srl $at, $t1, 8
+    andi $at, $at, 0xF
+    beq $at, $zero, eat_bean_end
+
+    addi $s5, $s5, 1
+    lui $at, 0x0F0F
+    addi $at, $at, 0x000F
+    and $t1, $t1, $at
+    j eat_bean_end
+
+    eat_bean_0:
+    andi $at, $t1, 0xFF
+    beq $at, $zero, eat_bean_end
+
+    addi $s5, $s5, 1
+    lui $at, 0x0F0F
+    addi $at, $at, 0x0F00
+    and $t1, $t1, $at
+
+    eat_bean_end:
+    sw $t1, 0($t3)
 
     lw $t1, 0($sp)
     lw $t2, 4($sp)
