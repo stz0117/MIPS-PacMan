@@ -2,8 +2,8 @@
 lui $k0, 0xC000     # disp
 lui $k1, 0xE000     # seg
 # TOGGLE
-# lui $fp, 0xD000     # kbd
-lui $fp, 0xB000     # btn
+lui $fp, 0xD000     # kbd
+# lui $fp, 0xB000     # btn
 la $gp, data
 addi $sp, $zero, 0x4000    # stack seg at 16384
 
@@ -73,7 +73,6 @@ state:
     beq $a3, $at, state_pause
 
     state_frame:
-        # TOGGLE
         andi $t0, $a0, 0xF
         addi $at, $zero, 6
         bne $t0, $at, state_frame_not_pause   # pause
@@ -146,7 +145,6 @@ state:
         j state_end
 
     state_win:
-    # TOGGLE
     andi $t0, $a0, 0xF
     addi $at, $zero, 0xE
     bne $t0, $at, state_win_not_start
@@ -184,7 +182,6 @@ state:
     j state_end
 
     state_died:
-    # TOGGLE
     andi $t0, $a0, 0xF
     addi $at, $zero, 0xE
     bne $t0, $at, state_died_not_start
@@ -228,7 +225,6 @@ state:
     j state_end
 
     state_lose:
-    # TOGGLE
     andi $t0, $a0, 0xF
     addi $at, $zero, 0xE
     bne $t0, $at, state_lose_not_start
@@ -273,7 +269,6 @@ state:
     j state_end
 
     state_pause:
-        # TOGGLE
         andi $t0, $a0, 0xF
         addi $at, $zero, 9
         bne $t0, $at, state_pause_not_frame
@@ -1886,17 +1881,20 @@ display_block:
             srl $t0, $t0, 2
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, pink_door_type_loop_0
+            # TOGGLE
+            # lui $at, 0x0fbf
             addi $at, $zero, 0x0fbf
             j pink_door_type_loop_0_end
             pink_door_type_loop_0:
+            # lui $at, 0x0101
             addi $at, $zero, 0x0101
             beq $t1, $zero, pink_door_type_loop_0_end   # black
+            # lui $at, 0x0111
             addi $at, $zero, 0x0111
             pink_door_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pink_door_type_loop_inner
@@ -1923,15 +1921,17 @@ display_block:
             srl $t0, $t0, 2
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, black_type_loop_0
+            # TOGGLE
+            # lui $at, 0x033d
             addi $at, $zero, 0x033d
             j black_type_loop_0_end
             black_type_loop_0:
+            # lui $at, 0x0101
             addi $at, $zero, 0x0101
             black_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, black_type_loop_inner
@@ -1958,15 +1958,17 @@ display_block:
             srl $t0, $t0, 2
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, gray_type_special_loop_0
+            # TOGGLE
+            # lui $at, 0x033d
             addi $at, $zero, 0x033d
             j gray_type_special_loop_0_end
             gray_type_special_loop_0:
+            # lui $at, 0x0111
             addi $at, $zero, 0x0111
             gray_type_special_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_special_loop_inner
@@ -1994,15 +1996,17 @@ display_block:
             srl $t0, $t0, 2
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, gray_type_common_loop_0
+            # TOGGLE
+            # lui $at, 0x033d
             addi $at, $zero, 0x033d
             j gray_type_common_loop_0_end
             gray_type_common_loop_0:
+            # lui $at, 0x0111
             addi $at, $zero, 0x0111
             gray_type_common_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, gray_type_common_loop_inner
@@ -2030,15 +2034,17 @@ display_block:
             srl $t0, $t0, 2
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, pacman_type_loop_0
+            # TOGGLE
+            # lui $at, 0x0fe0
             addi $at, $zero, 0x0fe0
             j pacman_type_loop_0_end
             pacman_type_loop_0:
+            # lui $at, 0x0111
             addi $at, $zero, 0x0111
             pacman_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pacman_type_loop_inner
@@ -2074,25 +2080,29 @@ display_block:
             beq $t1, $at, blinky_type_loop_3
 
             blinky_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
             addi $at, $zero, 0x0000
             j blinky_type_loop_0_end
 
             blinky_type_loop_1:
+            # lui $at, 0x0f31
             addi $at, $zero, 0x0f31
             j blinky_type_loop_0_end
 
             blinky_type_loop_2:
+            # lui $at, 0x0fff
             addi $at, $zero, 0x0fff
             j blinky_type_loop_0_end
 
             blinky_type_loop_3:
+            # lui $at, 0x0238
             addi $at, $zero, 0x0238
 
             blinky_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, blinky_type_loop_inner
@@ -2128,25 +2138,29 @@ display_block:
             beq $t1, $at, pinky_type_loop_3
 
             pinky_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
             addi $at, $zero, 0x0000
             j pinky_type_loop_0_end
 
             pinky_type_loop_1:
+            # lui $at, 0x0fcd
             addi $at, $zero, 0x0fcd
             j pinky_type_loop_0_end
 
             pinky_type_loop_2:
+            # lui $at, 0x0fff
             addi $at, $zero, 0x0fff
             j pinky_type_loop_0_end
 
             pinky_type_loop_3:
+            # lui $at, 0x0238
             addi $at, $zero, 0x0238
 
             pinky_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, pinky_type_loop_inner
@@ -2182,25 +2196,29 @@ display_block:
             beq $t1, $at, inky_type_loop_3
 
             inky_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
             addi $at, $zero, 0x0000
             j inky_type_loop_0_end
 
             inky_type_loop_1:
+            # lui $at, 0x04dc
             addi $at, $zero, 0x04dc
             j inky_type_loop_0_end
 
             inky_type_loop_2:
+            # lui $at, 0x0fff
             addi $at, $zero, 0x0fff
             j inky_type_loop_0_end
 
             inky_type_loop_3:
+            # lui $at, 0x0238
             addi $at, $zero, 0x0238
 
             inky_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, inky_type_loop_inner
@@ -2236,25 +2254,29 @@ display_block:
             beq $t1, $at, clyde_type_loop_3
 
             clyde_type_loop_0:
+            # TOGGLE
+            # lui $at, 0x0000
             addi $at, $zero, 0x0000
             j clyde_type_loop_0_end
 
             clyde_type_loop_1:
+            # lui $at, 0x0fb5
             addi $at, $zero, 0x0fb5
             j clyde_type_loop_0_end
 
             clyde_type_loop_2:
+            # lui $at, 0x0fff
             addi $at, $zero, 0x0fff
             j clyde_type_loop_0_end
 
             clyde_type_loop_3:
+            # lui $at, 0x0238
             addi $at, $zero, 0x0238
 
             clyde_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             addi $t4, $t4, -1
             bne $t4, $0, clyde_type_loop_inner
@@ -2267,9 +2289,8 @@ display_block:
         j display_block_end
 
     bean_type:
-        addi $at, $zero, 0x0fb9
         # TOGGLE
-        # 
+        addi $at, $zero, 0x0fb9
         addi $t2, $t2, 10224   # (640*8 - 8)*2 go to first pixel directly
         sh $at, 0($t2)
         sh $at, 2($t2)
@@ -2293,15 +2314,17 @@ display_block:
         banner_type_loop_inner:
             andi $at, $t0, 0x3  # lowest 2 bits
             beq $at, $zero, banner_type_loop_0
+            # TOGGLE
+            # lui $at, 0x0ff1
             addi $at, $zero, 0x0ff1
             j banner_type_loop_0_end
             banner_type_loop_0:
+            # lui $at, 0x0111
             addi $at, $zero, 0x0111
             banner_type_loop_0_end:
-            # TOGGLE
             # sw $at, 0($t2)
-            # addi $t2, $t2, -4
             sh $at, 0($t2)
+            # addi $t2, $t2, -4
             addi $t2, $t2, -2
             srl $t0, $t0, 2
             addi $t4, $t4, -1
@@ -2313,6 +2336,7 @@ display_block:
             addi $t5, $t5, -1
             bne $t5, $0, banner_type_loop
         j display_block_end
+
 
     display_block_end:
         lw $ra, 0($sp)
